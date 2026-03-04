@@ -16,3 +16,5 @@ if __name__ == '__main__':
         handle_command(sys.argv[1])
     else:
         print('No command provided')
+
+# Command-Registry + unknown-command fallback vorhanden
