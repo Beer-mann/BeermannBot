@@ -5,7 +5,8 @@ import unittest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-MARKER_PATTERN = re.compile(r"\b(?:TODO|FIXME)\b")
+MARKER_WORDS = ("TO" + "DO", "FIX" + "ME")
+MARKER_PATTERN = re.compile(r"\b(?:" + "|".join(MARKER_WORDS) + r")\b")
 EXCLUDED_PATH_PARTS = {".git", ".pytest_cache", ".venv", "__pycache__"}
 
 
@@ -37,7 +38,8 @@ class NoTodoFixmeCommentsTest(unittest.TestCase):
                 if MARKER_PATTERN.search(line):
                     matches.append(f"{path.relative_to(ROOT)}:{line_number}: {line.strip()}")
 
-        self.assertEqual(matches, [], "Found TODO/FIXME markers:\n" + "\n".join(matches))
+        failure_message = "Found " + "/".join(MARKER_WORDS) + " markers:\n" + "\n".join(matches)
+        self.assertEqual(matches, [], failure_message)
 
 
 if __name__ == "__main__":

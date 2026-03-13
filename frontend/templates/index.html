@@ -5,24 +5,212 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ project_name }}</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e27; color: #fff; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-        h1 { font-size: 3rem; margin-bottom: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 2rem; margin: 1rem 0; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: transform 0.2s; }
-        button:hover { transform: translateY(-2px); }
-        input, textarea { width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; margin: 0.5rem 0; }
+        :root {
+            --bg: #f4efe6;
+            --panel: rgba(35, 31, 32, 0.88);
+            --accent: #d46a2e;
+            --accent-dark: #8f3918;
+            --text: #f8f4ed;
+            --muted: #dbc9b4;
+            --ink: #241b16;
+            --border: rgba(255, 255, 255, 0.18);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(212, 106, 46, 0.22), transparent 30%),
+                linear-gradient(135deg, #efe5d2 0%, #f8f3ea 45%, #d7c1a1 100%);
+        }
+
+        .shell {
+            width: min(960px, calc(100% - 2rem));
+            margin: 2rem auto;
+            padding: 1.5rem;
+            border-radius: 28px;
+            background: rgba(255, 250, 243, 0.72);
+            box-shadow: 0 24px 70px rgba(68, 40, 12, 0.18);
+            backdrop-filter: blur(14px);
+        }
+
+        .hero, .panel {
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        .hero {
+            padding: 2rem;
+            background:
+                linear-gradient(160deg, rgba(36, 27, 22, 0.95), rgba(92, 54, 29, 0.92)),
+                linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06));
+            color: var(--text);
+        }
+
+        .eyebrow {
+            margin: 0 0 0.75rem;
+            font-size: 0.75rem;
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2.4rem, 7vw, 4.8rem);
+            line-height: 0.96;
+        }
+
+        .hero p {
+            max-width: 38rem;
+            margin: 1rem 0 0;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #efe6d8;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            margin-top: 1rem;
+        }
+
+        .panel {
+            padding: 1.4rem;
+            background: var(--panel);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+        }
+
+        .command-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            padding: 0;
+            margin: 1rem 0 0;
+            list-style: none;
+        }
+
+        .command-list button {
+            border: 0;
+            border-radius: 999px;
+            padding: 0.7rem 1rem;
+            font: inherit;
+            cursor: pointer;
+            color: var(--text);
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            transition: transform 0.18s ease, filter 0.18s ease;
+        }
+
+        .command-list button:hover,
+        .command-list button:focus-visible {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            margin-bottom: 1rem;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .status::before {
+            content: "";
+            width: 0.7rem;
+            height: 0.7rem;
+            border-radius: 50%;
+            background: #9fe870;
+            box-shadow: 0 0 18px rgba(159, 232, 112, 0.7);
+        }
+
+        pre {
+            min-height: 8rem;
+            margin: 0;
+            padding: 1rem;
+            border-radius: 18px;
+            background: rgba(12, 10, 11, 0.58);
+            color: #f9efe3;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        .caption {
+            margin: 0.8rem 0 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 640px) {
+            .shell { width: min(100%, calc(100% - 1rem)); margin: 0.5rem auto; padding: 0.75rem; }
+            .hero, .panel { border-radius: 20px; }
+            .hero { padding: 1.4rem; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🦅 {{ project_name }}</h1>
-        <div class="card">
-            <h2>Welcome</h2>
-            <p>Auto-generated UI by BeermannCode. Customize me!</p>
-            <button onclick="alert('Hello!')">Test Button</button>
-        </div>
-    </div>
+    <main class="shell">
+        <section class="hero">
+            <p class="eyebrow">Command Deck</p>
+            <h1>{{ project_name }}</h1>
+            <p>
+                A small command service with both CLI and HTTP entry points. Trigger a built-in
+                command below or call the JSON API directly.
+            </p>
+        </section>
+
+        <section class="grid">
+            <article class="panel">
+                <h2>Available Commands</h2>
+                <ul class="command-list">
+                    {% for command in commands %}
+                    <li><button type="button" data-command="{{ command }}">{{ command }}</button></li>
+                    {% endfor %}
+                </ul>
+                <p class="caption">HTTP: <code>GET /api/commands</code> and <code>GET /api/commands/&lt;name&gt;</code></p>
+            </article>
+
+            <article class="panel">
+                <div class="status">Service online</div>
+                <h2>Latest Result</h2>
+                <pre id="output">Select a command to execute it.</pre>
+                <p class="caption">CLI examples: <code>python app.py hello</code> or <code>python app.py --list --json</code></p>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        const output = document.getElementById("output");
+
+        async function runCommand(command) {
+            output.textContent = "Running " + command + "...";
+            const response = await fetch("/api/commands/" + encodeURIComponent(command));
+            const payload = await response.json();
+
+            if (!response.ok) {
+                output.textContent = payload.error || "Request failed.";
+                return;
+            }
+
+            output.textContent = payload.output;
+        }
+
+        document.querySelectorAll("[data-command]").forEach((button) => {
+            button.addEventListener("click", () => runCommand(button.dataset.command));
+        });
+    </script>
 </body>
 </html>
