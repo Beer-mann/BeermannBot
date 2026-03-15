@@ -11,6 +11,7 @@ import app
     [
         ("hello", "Hello, world!\n"),
         ("goodbye", "Goodbye, world!\n"),
+        ("help", "Available commands:\n- goodbye\n- hello\n- help\n"),
     ],
 )
 def test_handle_command_runs_registered_command(command, expected_output, capsys):
@@ -29,6 +30,26 @@ def test_handle_command_reports_unknown_command(capsys):
 
     assert captured.out == "Unknown command: missing\n"
     assert result is False
+
+
+def test_execute_command_returns_structured_result():
+    result = app.execute_command("hello")
+
+    assert result == {
+        "command": "hello",
+        "known": True,
+        "output": "Hello, world!",
+    }
+
+
+def test_execute_command_reports_unknown_command():
+    result = app.execute_command("missing")
+
+    assert result == {
+        "command": "missing",
+        "known": False,
+        "output": "Unknown command: missing",
+    }
 
 
 def test_main_without_command_prints_usage(capsys, monkeypatch):

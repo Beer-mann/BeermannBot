@@ -23,6 +23,7 @@ def test_list_commands_returns_json(client):
     assert "commands" in data
     assert "hello" in data["commands"]
     assert "goodbye" in data["commands"]
+    assert "help" in data["commands"]
     assert data["commands"] == sorted(data["commands"])
 
 
@@ -36,7 +37,14 @@ def test_run_known_command(client):
 
 def test_run_unknown_command(client):
     res = client.get("/api/command/missing")
-    assert res.status_code == 200
+    assert res.status_code == 404
     data = res.get_json()
     assert data["known"] is False
     assert "missing" in data["output"]
+
+
+def test_healthcheck_returns_ok(client):
+    res = client.get("/api/health")
+
+    assert res.status_code == 200
+    assert res.get_json() == {"status": "ok", "project": "BeermannBot"}

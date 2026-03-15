@@ -25,6 +25,7 @@ Usage
 ```bash
 ./run_cli.sh hello      # prints "Hello, world!"
 ./run_cli.sh goodbye    # prints "Goodbye, world!"
+./run_cli.sh help       # prints all available commands
 ```
 
 **Web UI**
@@ -42,6 +43,7 @@ The UI also exposes a small REST API:
 |---|---|
 | `GET /api/commands` | JSON list of all registered commands |
 | `GET /api/command/<name>` | Execute a command and return its output as JSON |
+| `GET /api/health` | Simple healthcheck payload for monitoring/smoke tests |
 
 Structure
 ---------
@@ -70,11 +72,14 @@ Open `app.py` and add an entry to the `commands` dict:
 commands = {
     'hello':   lambda: print('Hello, world!'),
     'goodbye': lambda: print('Goodbye, world!'),
-    'ping':    lambda: print('pong'),            # new command
+    'help':    lambda: print('Available commands...'),
+    'ping':    lambda: print('pong'),
 }
 ```
 
-The new command is immediately available in both the CLI and the web UI.
+The new command is immediately available in both the CLI and the web UI. Unknown
+commands now return HTTP `404` from the API while preserving the CLI's non-zero
+exit code behavior.
 
 Running Tests
 -------------

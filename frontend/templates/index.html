@@ -17,6 +17,7 @@
         .cmd-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
         .cmd-chip { background: rgba(102,126,234,0.2); border: 1px solid rgba(102,126,234,0.4); border-radius: 6px; padding: 0.4rem 0.9rem; cursor: pointer; transition: background 0.2s; }
         .cmd-chip:hover { background: rgba(102,126,234,0.4); }
+        .cmd-empty { color: rgba(255,255,255,0.75); }
         #output { font-family: monospace; font-size: 0.95rem; min-height: 2.5rem; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 8px; margin-top: 1rem; white-space: pre-wrap; }
         .output-ok  { color: #a3e635; }
         .output-err { color: #f87171; }
@@ -42,17 +43,29 @@
     </div>
     <script>
         async function loadCommands() {
-            const res = await fetch('/api/commands');
-            const data = await res.json();
             const list = document.getElementById('cmd-list');
-            list.innerHTML = '';
-            data.commands.forEach(cmd => {
-                const chip = document.createElement('span');
-                chip.className = 'cmd-chip';
-                chip.textContent = cmd;
-                chip.onclick = () => { document.getElementById('cmd-input').value = cmd; runCommand(); };
-                list.appendChild(chip);
-            });
+            list.textContent = 'Loading...';
+            try {
+                const res = await fetch('/api/commands');
+                if (!res.ok) {
+                    throw new Error('Unable to load commands');
+                }
+                const data = await res.json();
+                list.innerHTML = '';
+                if (data.commands.length === 0) {
+                    list.innerHTML = '<span class="cmd-empty">No commands available.</span>';
+                    return;
+                }
+                data.commands.forEach(cmd => {
+                    const chip = document.createElement('span');
+                    chip.className = 'cmd-chip';
+                    chip.textContent = cmd;
+                    chip.onclick = () => { document.getElementById('cmd-input').value = cmd; runCommand(); };
+                    list.appendChild(chip);
+                });
+            } catch (e) {
+                list.innerHTML = '<span class="cmd-empty">Failed to load commands.</span>';
+            }
         }
 
         async function runCommand() {
@@ -68,7 +81,7 @@
                 const res = await fetch('/api/command/' + encodeURIComponent(cmd));
                 const data = await res.json();
                 out.textContent = data.output || '(no output)';
-                out.className = data.known ? 'output-ok' : 'output-err';
+                out.className = res.ok && data.known ? 'output-ok' : 'output-err';
             } catch (e) {
                 out.textContent = 'Error: ' + e.message;
                 out.className = 'output-err';

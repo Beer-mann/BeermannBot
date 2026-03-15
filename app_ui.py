@@ -1,9 +1,6 @@
-import io
-import contextlib
-
 from flask import Flask, jsonify, render_template
 
-from app import commands, handle_command
+from app import execute_command, get_command_names
 
 app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
 
@@ -17,17 +14,19 @@ def index():
 
 @app.route("/api/commands")
 def list_commands():
-    return jsonify({"commands": sorted(commands.keys())})
+    return jsonify({"commands": get_command_names()})
 
 
 @app.route("/api/command/<cmd>")
 def run_command(cmd):
-    buf = io.StringIO()
-    with contextlib.redirect_stdout(buf):
-        handle_command(cmd)
-    output = buf.getvalue()
-    known = cmd in commands
-    return jsonify({"command": cmd, "output": output.strip(), "known": known})
+    result = execute_command(cmd)
+    status_code = 200 if result["known"] else 404
+    return jsonify(result), status_code
+
+
+@app.route("/api/health")
+def healthcheck():
+    return jsonify({"status": "ok", "project": PROJECT_NAME})
 
 
 if __name__ == "__main__":
