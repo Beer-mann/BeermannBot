@@ -1,65 +1,90 @@
  BeermannBot
 ===========
 
-A Discord bot designed to enhance your gaming experience by providing various features such as voice channel management, game-related commands, and more.
+A simple command-dispatcher bot with a web UI and CLI interface.
 
 Description
 ------------
 
-BeermannBot is a custom Discord bot built using discord.py library for Python. It aims to make your Discord server more interactive and fun by offering a variety of useful commands.
+BeermannBot is a Python application that exposes a registry of named commands
+runnable from the command line or through a browser-based web UI backed by
+Flask.
 
 Installation
 ------------
 
-To install BeermannBot, follow these steps:
-
-1. Install Python (version 3.7 or higher) on your system if it's not already installed.
-2. Create a new directory for the project and navigate to it in your terminal.
-3. Run `git clone https://github.com/yourusername/BeermannBot.git` to download the repository.
-4. Install the required packages by running `pip install -r requirements.txt`.
-5. Create a new application on the [Discord Developer Portal](https://discord.com/developers/applications) and obtain your bot's token.
-6. Replace `BOT_TOKEN` in `main.py` with your bot's token.
-7. Run the bot using `python main.py`.
+```bash
+./setup.sh        # creates .venv and installs dependencies
+```
 
 Usage
 -----
 
-To use BeermannBot, invite it to your Discord server by following these steps:
+**CLI**
 
-1. Go to [Invite a Bot](https://discordapp.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&scope=bot) on the Discord Developer Portal.
-2. Replace `YOUR_CLIENT_ID` with your bot's client ID.
-3. Choose the permissions your bot needs and click "Authorize".
-4. Copy the generated invite link and share it with your server members to invite BeermannBot.
+```bash
+./run_cli.sh hello      # prints "Hello, world!"
+./run_cli.sh goodbye    # prints "Goodbye, world!"
+./run_cli.sh help       # prints all available commands
+```
+
+**Web UI**
+
+```bash
+./run_ui.sh             # starts Flask on http://localhost:5011
+```
+
+Open `http://localhost:5011` in your browser.  Click any command chip or type
+a command name and press **Run** / Enter to execute it live.
+
+The UI also exposes a small REST API:
+
+| Endpoint | Description |
+|---|---|
+| `GET /api/commands` | JSON list of all registered commands |
+| `GET /api/command/<name>` | Execute a command and return its output as JSON |
+| `GET /api/health` | Simple healthcheck payload for monitoring/smoke tests |
 
 Structure
 ---------
 
-The project structure is as follows:
-
 ```
 BeermannBot/
-├── main.py
-├── commands/
-│   ├── __init__.py
-│   ├── game_commands.py
-│   ├── music_commands.py
-│   └── admin_commands.py
-├── events/
-│   ├── __init__.py
-│   ├── on_ready.py
-│   ├── on_message.py
-│   └── ...
-├── utils/
-│   ├── __init__.py
-│   ├── functions.py
-│   └── constants.py
-├── .env
+├── app.py                      # command registry + CLI entry point
+├── app_ui.py                   # Flask web server
+├── frontend/
+│   └── templates/index.html    # browser UI
+├── tests/
+│   ├── test_app.py             # CLI / command-dispatch tests
+│   └── test_no_todo_fixme.py   # code-quality guard
+├── run_cli.sh                  # CLI launcher
+├── run_ui.sh                   # UI launcher
+├── setup.sh                    # virtualenv + dependency setup
 └── requirements.txt
 ```
 
-- `main.py` is the entry point of the bot.
-- The `commands` directory contains various command modules.
-- The `events` directory contains event handlers for the bot.
-- The `utils` directory contains utility functions and constants used throughout the project.
-- `.env` file stores sensitive information like the bot's token (not included in this repository).
-- `requirements.txt` lists all the required Python packages for the project.
+Adding Commands
+---------------
+
+Open `app.py` and add an entry to the `commands` dict:
+
+```python
+commands = {
+    'hello':   lambda: print('Hello, world!'),
+    'goodbye': lambda: print('Goodbye, world!'),
+    'help':    lambda: print('Available commands...'),
+    'ping':    lambda: print('pong'),
+}
+```
+
+The new command is immediately available in both the CLI and the web UI. Unknown
+commands now return HTTP `404` from the API while preserving the CLI's non-zero
+exit code behavior.
+
+Running Tests
+-------------
+
+```bash
+source .venv/bin/activate
+pytest tests/
+```

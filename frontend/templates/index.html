@@ -12,17 +12,89 @@
         .card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 2rem; margin: 1rem 0; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
         button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: transform 0.2s; }
         button:hover { transform: translateY(-2px); }
+        button:disabled { opacity: 0.5; cursor: default; transform: none; }
         input, textarea { width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; margin: 0.5rem 0; }
+        .cmd-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+        .cmd-chip { background: rgba(102,126,234,0.2); border: 1px solid rgba(102,126,234,0.4); border-radius: 6px; padding: 0.4rem 0.9rem; cursor: pointer; transition: background 0.2s; }
+        .cmd-chip:hover { background: rgba(102,126,234,0.4); }
+        .cmd-empty { color: rgba(255,255,255,0.75); }
+        #output { font-family: monospace; font-size: 0.95rem; min-height: 2.5rem; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 8px; margin-top: 1rem; white-space: pre-wrap; }
+        .output-ok  { color: #a3e635; }
+        .output-err { color: #f87171; }
+        .form-row { display: flex; gap: 0.5rem; align-items: flex-start; }
+        .form-row input { margin: 0; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🦅 {{ project_name }}</h1>
+        <h1>{{ project_name }}</h1>
         <div class="card">
-            <h2>Welcome</h2>
-            <p>Auto-generated UI by BeermannCode. Customize me!</p>
-            <button onclick="alert('Hello!')">Test Button</button>
+            <h2>Available Commands</h2>
+            <div class="cmd-list" id="cmd-list">Loading&hellip;</div>
+        </div>
+        <div class="card">
+            <h2>Run Command</h2>
+            <div class="form-row">
+                <input type="text" id="cmd-input" placeholder="Enter command (e.g. hello)" />
+                <button id="run-btn" onclick="runCommand()">Run</button>
+            </div>
+            <div id="output"></div>
         </div>
     </div>
+    <script>
+        async function loadCommands() {
+            const list = document.getElementById('cmd-list');
+            list.textContent = 'Loading...';
+            try {
+                const res = await fetch('/api/commands');
+                if (!res.ok) {
+                    throw new Error('Unable to load commands');
+                }
+                const data = await res.json();
+                list.innerHTML = '';
+                if (data.commands.length === 0) {
+                    list.innerHTML = '<span class="cmd-empty">No commands available.</span>';
+                    return;
+                }
+                data.commands.forEach(cmd => {
+                    const chip = document.createElement('span');
+                    chip.className = 'cmd-chip';
+                    chip.textContent = cmd;
+                    chip.onclick = () => { document.getElementById('cmd-input').value = cmd; runCommand(); };
+                    list.appendChild(chip);
+                });
+            } catch (e) {
+                list.innerHTML = '<span class="cmd-empty">Failed to load commands.</span>';
+            }
+        }
+
+        async function runCommand() {
+            const input = document.getElementById('cmd-input');
+            const btn = document.getElementById('run-btn');
+            const out = document.getElementById('output');
+            const cmd = input.value.trim();
+            if (!cmd) return;
+            btn.disabled = true;
+            out.textContent = 'Running…';
+            out.className = '';
+            try {
+                const res = await fetch('/api/command/' + encodeURIComponent(cmd));
+                const data = await res.json();
+                out.textContent = data.output || '(no output)';
+                out.className = res.ok && data.known ? 'output-ok' : 'output-err';
+            } catch (e) {
+                out.textContent = 'Error: ' + e.message;
+                out.className = 'output-err';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        document.getElementById('cmd-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter') runCommand();
+        });
+
+        loadCommands();
+    </script>
 </body>
 </html>

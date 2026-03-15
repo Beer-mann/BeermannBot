@@ -11,39 +11,74 @@ import app
     [
         ("hello", "Hello, world!\n"),
         ("goodbye", "Goodbye, world!\n"),
+        ("help", "Available commands:\n- goodbye\n- hello\n- help\n"),
     ],
 )
 def test_handle_command_runs_registered_command(command, expected_output, capsys):
-    app.handle_command(command)
+    result = app.handle_command(command)
 
     captured = capsys.readouterr()
 
     assert captured.out == expected_output
+    assert result is True
 
 
 def test_handle_command_reports_unknown_command(capsys):
-    app.handle_command("missing")
+    result = app.handle_command("missing")
 
     captured = capsys.readouterr()
 
     assert captured.out == "Unknown command: missing\n"
+    assert result is False
 
 
-def test_main_without_command_prints_message(capsys, monkeypatch):
+def test_execute_command_returns_structured_result():
+    result = app.execute_command("hello")
+
+    assert result == {
+        "command": "hello",
+        "known": True,
+        "output": "Hello, world!",
+    }
+
+
+def test_execute_command_reports_unknown_command():
+    result = app.execute_command("missing")
+
+    assert result == {
+        "command": "missing",
+        "known": False,
+        "output": "Unknown command: missing",
+    }
+
+
+def test_main_without_command_prints_usage(capsys, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["app.py"])
 
-    runpy.run_path("app.py", run_name="__main__")
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path("app.py", run_name="__main__")
 
+    assert exc_info.value.code == 1
     captured = capsys.readouterr()
-
-    assert captured.out == "No command provided\n"
+    assert "Usage" in captured.out
+    assert "Available commands" in captured.out
 
 
 def test_main_with_command_dispatches(capsys, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["app.py", "hello"])
 
-    runpy.run_path("app.py", run_name="__main__")
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path("app.py", run_name="__main__")
 
+    assert exc_info.value.code == 0
     captured = capsys.readouterr()
-
     assert captured.out == "Hello, world!\n"
+
+
+def test_main_with_unknown_command_exits_nonzero(capsys, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["app.py", "missing"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path("app.py", run_name="__main__")
+
+    assert exc_info.value.code == 1
