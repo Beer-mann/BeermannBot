@@ -1,14 +1,18 @@
 import io
+import logging
 import os
-import sys
 from contextlib import redirect_stdout
 
 from flask import Flask, jsonify, render_template, request
+from flask_cors import CORS
 
-sys.path.insert(0, os.path.dirname(__file__))
 from app import commands, handle_command
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__, template_folder="frontend/templates")
+CORS(app)
 
 
 @app.route("/")
@@ -27,9 +31,14 @@ def run_command():
     cmd = data.get("command", "").strip()
     if not cmd:
         return jsonify({"error": "No command provided"}), 400
+    logger.info("Running command: %s", cmd)
     buf = io.StringIO()
-    with redirect_stdout(buf):
-        handle_command(cmd)
+    try:
+        with redirect_stdout(buf):
+            handle_command(cmd)
+    except Exception as exc:
+        logger.exception("Command %r raised an exception", cmd)
+        return jsonify({"error": f"Command failed: {exc}"}), 500
     return jsonify({"output": buf.getvalue()})
 
 
