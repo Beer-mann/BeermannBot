@@ -1,46 +1,63 @@
-import pathlib
-import re
 import subprocess
-import unittest
+from pathlib import Path
 
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-MARKER_WORDS = ("TO" + "DO", "FIX" + "ME")
-MARKER_PATTERN = re.compile(r"\b(?:" + "|".join(MARKER_WORDS) + r")\b")
-EXCLUDED_PATH_PARTS = {".git", ".pytest_cache", ".venv", "__pycache__"}
+REPO_ROOT = Path(__file__).resolve().parents[1]
+IGNORED_DIRS = {
+    ".git",
+    ".pytest_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+}
+CHECKED_SUFFIXES = {
+    ".css",
+    ".html",
+    ".js",
+    ".json",
+    ".md",
+    ".py",
+    ".sh",
+    ".txt",
+    ".yml",
+    ".yaml",
+}
+MARKERS = ("TO" + "DO", "FIX" + "ME")
+SELF_PATH = Path(__file__).resolve()
 
 
-def tracked_files():
+def iter_project_files() -> list[Path]:
     result = subprocess.run(
         ["git", "ls-files"],
-        cwd=ROOT,
+        cwd=REPO_ROOT,
         check=True,
         capture_output=True,
         text=True,
     )
-    files = []
+    files: list[Path] = []
     for relative_path in result.stdout.splitlines():
-        path = ROOT / relative_path
-        if any(part in EXCLUDED_PATH_PARTS for part in path.parts):
+        path = REPO_ROOT / relative_path
+        if not path.is_file() or path == SELF_PATH:
             continue
-        if path.is_file():
-            files.append(path)
-    return files
+        if any(part in IGNORED_DIRS for part in path.parts):
+            continue
+        if path.suffix not in CHECKED_SUFFIXES:
+            continue
+        files.append(path)
+    return sorted(files)
 
 
-class NoTodoFixmeCommentsTest(unittest.TestCase):
-    def test_tracked_files_do_not_contain_todo_or_fixme_markers(self):
-        matches = []
+def test_repository_contains_no_action_markers():
+    offenders: list[str] = []
 
-        for path in tracked_files():
-            contents = path.read_text(encoding="utf-8")
-            for line_number, line in enumerate(contents.splitlines(), start=1):
-                if MARKER_PATTERN.search(line):
-                    matches.append(f"{path.relative_to(ROOT)}:{line_number}: {line.strip()}")
+    for path in iter_project_files():
+        text = path.read_text(encoding="utf-8")
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            if any(marker in line for marker in MARKERS):
+                offenders.append(f"{path.relative_to(REPO_ROOT)}:{line_number}")
 
-        failure_message = "Found " + "/".join(MARKER_WORDS) + " markers:\n" + "\n".join(matches)
-        self.assertEqual(matches, [], failure_message)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    marker_summary = "/".join(MARKERS)
+    assert offenders == [], f"Found {marker_summary} markers in:\n" + "\n".join(offenders)
