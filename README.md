@@ -8,7 +8,8 @@ Description
 
 BeermannBot is a Python CLI application with a Flask-powered web UI. It provides a simple
 command registry pattern for dispatching named commands, with both a terminal interface and
-a browser-based dashboard.
+a browser-based dashboard. Commands now expose descriptions, return explicit success or
+failure results, and the dashboard keeps a short in-memory history of recent runs.
 
 Installation
 ------------
@@ -33,13 +34,32 @@ python app.py hello
 python app.py goodbye
 python app.py status
 python app.py help
+python app.py --list
 ```
+
+`python app.py` now exits with status `2` when no command is provided and `1` for unknown
+commands, which makes the CLI easier to automate in scripts.
 
 **Web UI mode:**
 ```
 ./run_ui.sh
 ```
 Then open http://localhost:5011 in your browser. The port can be overridden with the `PORT` environment variable.
+
+**HTTP API:**
+```
+GET  /health    # simple readiness check
+GET  /commands  # command names plus descriptions
+GET  /history   # last 10 command runs
+POST /run       # execute a command
+```
+
+Example:
+```bash
+curl -s http://localhost:5011/run \
+  -H 'Content-Type: application/json' \
+  -d '{"command":"version"}'
+```
 
 **Make targets:**
 ```
@@ -62,7 +82,8 @@ BeermannBot/
 │       └── index.html          # Web dashboard template
 ├── tests/
 │   ├── test_app.py             # Unit tests
-│   └── test_no_todo_fixme.py   # Code quality guard
+│   └── test_server.py          # API and web tests
+├── pytest.ini                  # Pytest path configuration
 ├── requirements.txt
 ├── Makefile
 ├── run_cli.sh
@@ -71,6 +92,6 @@ BeermannBot/
 ```
 
 - `app.py` is the entry point for the CLI and contains the command registry.
-- `server.py` runs the Flask web server that renders the dashboard.
+- `server.py` runs the Flask web server, exposes API endpoints, and stores recent command history.
 - The `frontend/templates/` directory contains the Jinja2 HTML templates.
 - `requirements.txt` lists all required Python packages.
