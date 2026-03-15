@@ -1,20 +1,30 @@
 import sys
+from typing import Callable
 
-commands = {
-    'hello': lambda: print('Hello, world!'),
-    'goodbye': lambda: print('Goodbye, world!')
+
+def _show_help() -> None:
+    available = sorted(k for k in commands)
+    print("Available commands: " + ", ".join(available))
+
+
+commands: dict[str, Callable[[], None]] = {
+    "hello": lambda: print("Hello, world!"),
+    "goodbye": lambda: print("Goodbye, world!"),
+    "status": lambda: print("BeermannBot is running."),
+    "help": _show_help,
 }
 
-def handle_command(command):
+
+def handle_command(command: str) -> None:
     if command in commands:
         commands[command]()
     else:
-        print(f'Unknown command: {command}')
+        available = ", ".join(sorted(commands.keys()))
+        print(f"Unknown command: {command}. Available: {available}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     if len(sys.argv) > 1:
         handle_command(sys.argv[1])
     else:
-        print('No command provided')
-
-# Command-Registry + unknown-command fallback vorhanden
+        print("No command provided")

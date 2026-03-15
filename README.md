@@ -1,65 +1,76 @@
  BeermannBot
 ===========
 
-A Discord bot designed to enhance your gaming experience by providing various features such as voice channel management, game-related commands, and more.
+A command-line application with a web dashboard for running and managing bot commands.
 
 Description
 ------------
 
-BeermannBot is a custom Discord bot built using discord.py library for Python. It aims to make your Discord server more interactive and fun by offering a variety of useful commands.
+BeermannBot is a Python CLI application with a Flask-powered web UI. It provides a simple
+command registry pattern for dispatching named commands, with both a terminal interface and
+a browser-based dashboard.
 
 Installation
 ------------
 
-To install BeermannBot, follow these steps:
-
-1. Install Python (version 3.7 or higher) on your system if it's not already installed.
-2. Create a new directory for the project and navigate to it in your terminal.
-3. Run `git clone https://github.com/yourusername/BeermannBot.git` to download the repository.
-4. Install the required packages by running `pip install -r requirements.txt`.
-5. Create a new application on the [Discord Developer Portal](https://discord.com/developers/applications) and obtain your bot's token.
-6. Replace `BOT_TOKEN` in `main.py` with your bot's token.
-7. Run the bot using `python main.py`.
+1. Install Python 3.8 or higher.
+2. Clone the repository:
+   ```
+   git clone https://github.com/Beer-mann/BeermannBot.git
+   cd BeermannBot
+   ```
+3. Run setup to create the virtual environment and install dependencies:
+   ```
+   ./setup.sh
+   ```
 
 Usage
 -----
 
-To use BeermannBot, invite it to your Discord server by following these steps:
+**CLI mode:**
+```
+python app.py hello
+python app.py goodbye
+python app.py status
+python app.py help
+```
 
-1. Go to [Invite a Bot](https://discordapp.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&scope=bot) on the Discord Developer Portal.
-2. Replace `YOUR_CLIENT_ID` with your bot's client ID.
-3. Choose the permissions your bot needs and click "Authorize".
-4. Copy the generated invite link and share it with your server members to invite BeermannBot.
+**Web UI mode:**
+```
+./run_ui.sh
+```
+Then open http://localhost:5011 in your browser. The port can be overridden with the `PORT` environment variable.
+
+**Make targets:**
+```
+make setup   # install dependencies
+make cli     # run help via CLI
+make ui      # start web UI
+make test    # run test suite
+make smoke   # smoke-test the UI
+```
 
 Structure
 ---------
 
-The project structure is as follows:
-
 ```
 BeermannBot/
-├── main.py
-├── commands/
-│   ├── __init__.py
-│   ├── game_commands.py
-│   ├── music_commands.py
-│   └── admin_commands.py
-├── events/
-│   ├── __init__.py
-│   ├── on_ready.py
-│   ├── on_message.py
-│   └── ...
-├── utils/
-│   ├── __init__.py
-│   ├── functions.py
-│   └── constants.py
-├── .env
-└── requirements.txt
+├── app.py                      # CLI entry point and command registry
+├── server.py                   # Flask web server
+├── frontend/
+│   └── templates/
+│       └── index.html          # Web dashboard template
+├── tests/
+│   ├── test_app.py             # Unit tests
+│   └── test_no_todo_fixme.py   # Code quality guard
+├── requirements.txt
+├── Makefile
+├── run_cli.sh
+├── run_ui.sh
+└── setup.sh
 ```
 
-- `main.py` is the entry point of the bot.
-- The `commands` directory contains various command modules.
-- The `events` directory contains event handlers for the bot.
-- The `utils` directory contains utility functions and constants used throughout the project.
-- `.env` file stores sensitive information like the bot's token (not included in this repository).
-- `requirements.txt` lists all the required Python packages for the project.
+- `app.py` is the entry point for the CLI and contains the command registry.
+- `server.py` runs the Flask web server that renders the dashboard.
+- The `frontend/templates/` directory contains the Jinja2 HTML templates.
+- `requirements.txt` lists all required Python packages.
