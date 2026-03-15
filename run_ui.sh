@@ -2,4 +2,6 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 PORT="${PORT:-5011}"
-python3 -m http.server "$PORT"
+[ -f .venv/bin/activate ] || ./setup.sh
+source .venv/bin/activate
+python app_ui.py

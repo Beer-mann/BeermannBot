@@ -5,24 +5,330 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ project_name }}</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e27; color: #fff; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-        h1 { font-size: 3rem; margin-bottom: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 2rem; margin: 1rem 0; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: transform 0.2s; }
-        button:hover { transform: translateY(-2px); }
-        input, textarea { width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; margin: 0.5rem 0; }
+        :root {
+            --bg: #f4efe6;
+            --ink: #1f1b16;
+            --card: rgba(255, 250, 241, 0.84);
+            --line: rgba(31, 27, 22, 0.14);
+            --accent: #c35b2f;
+            --accent-dark: #8f3e1d;
+            --muted: #6d6256;
+            --success: #22543d;
+            --error: #9b2c2c;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(195, 91, 47, 0.24), transparent 28%),
+                linear-gradient(135deg, #f8f1e6 0%, #efe2ce 55%, #dbc5aa 100%);
+            min-height: 100vh;
+        }
+
+        .shell {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+
+        .hero {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2.4rem, 5vw, 4.5rem);
+            line-height: 0.95;
+        }
+
+        .hero p {
+            max-width: 680px;
+            margin: 0;
+            font-size: 1.05rem;
+            color: var(--muted);
+        }
+
+        .grid {
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 1.2fr 0.8fr;
+        }
+
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            box-shadow: 0 20px 50px rgba(65, 43, 21, 0.08);
+            backdrop-filter: blur(8px);
+            padding: 22px;
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            font-size: 1.25rem;
+        }
+
+        .command-list, .history-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .command-button {
+            width: 100%;
+            text-align: left;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 16px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+        }
+
+        .command-button:hover {
+            transform: translateY(-1px);
+            border-color: rgba(195, 91, 47, 0.45);
+            background: rgba(255, 247, 240, 0.95);
+        }
+
+        .command-name {
+            display: block;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .command-description, .history-empty, .status {
+            color: var(--muted);
+            font-size: 0.96rem;
+        }
+
+        .runner {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .runner-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input, button {
+            font: inherit;
+        }
+
+        input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        button.run {
+            border: 0;
+            border-radius: 14px;
+            padding: 14px 18px;
+            min-width: 120px;
+            background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: #fff8f3;
+            cursor: pointer;
+        }
+
+        button.run:disabled {
+            opacity: 0.7;
+            cursor: wait;
+        }
+
+        .output {
+            border-radius: 18px;
+            background: #221d18;
+            color: #f6eadf;
+            min-height: 120px;
+            padding: 16px;
+            white-space: pre-wrap;
+            font-family: "Courier New", monospace;
+        }
+
+        .output.success { color: #daf3db; }
+        .output.error { color: #ffd7d7; }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .history-item:last-child { border-bottom: 0; }
+
+        .history-item button {
+            border: 0;
+            background: transparent;
+            color: var(--accent-dark);
+            cursor: pointer;
+            padding: 0;
+        }
+
+        @media (max-width: 860px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 560px) {
+            .runner-row { flex-direction: column; }
+            button.run { width: 100%; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🦅 {{ project_name }}</h1>
-        <div class="card">
-            <h2>Welcome</h2>
-            <p>Auto-generated UI by BeermannCode. Customize me!</p>
-            <button onclick="alert('Hello!')">Test Button</button>
-        </div>
-    </div>
+    <main class="shell">
+        <section class="hero">
+            <div class="eyebrow">Command Dispatcher</div>
+            <h1>{{ project_name }}</h1>
+            <p>Run the built-in commands from the browser, inspect what each command does, and replay recent activity without leaving the page.</p>
+        </section>
+
+        <section class="grid">
+            <div class="panel">
+                <h2>Commands</h2>
+                <div class="command-list" id="command-list">Loading commands...</div>
+            </div>
+
+            <div class="panel">
+                <h2>Run Command</h2>
+                <div class="runner">
+                    <div class="runner-row">
+                        <input id="command-input" type="text" placeholder="Enter a command name">
+                        <button id="run-button" class="run" type="button">Run</button>
+                    </div>
+                    <div class="status" id="status-text">Ready.</div>
+                    <div class="output" id="output">Choose a command or type one above.</div>
+                </div>
+
+                <h2>Recent Runs</h2>
+                <div class="history-list" id="history-list">
+                    <div class="history-empty">No commands have been run yet.</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const commandList = document.getElementById("command-list");
+        const historyList = document.getElementById("history-list");
+        const commandInput = document.getElementById("command-input");
+        const runButton = document.getElementById("run-button");
+        const output = document.getElementById("output");
+        const statusText = document.getElementById("status-text");
+
+        function setOutput(message, isSuccess) {
+            output.textContent = message;
+            output.className = "output " + (isSuccess ? "success" : "error");
+        }
+
+        async function loadCommands() {
+            const response = await fetch("/api/commands");
+            const data = await response.json();
+            commandList.innerHTML = "";
+
+            data.commands.forEach((command) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "command-button";
+                button.dataset.command = command.name;
+                button.innerHTML =
+                    '<span class="command-name">' + command.name + "</span>" +
+                    '<span class="command-description">' + command.description + "</span>";
+                button.addEventListener("click", () => {
+                    commandInput.value = command.name;
+                    runCommand();
+                });
+                commandList.appendChild(button);
+            });
+        }
+
+        async function loadHistory() {
+            const response = await fetch("/api/history");
+            const data = await response.json();
+            historyList.innerHTML = "";
+
+            if (data.history.length === 0) {
+                historyList.innerHTML = '<div class="history-empty">No commands have been run yet.</div>';
+                return;
+            }
+
+            data.history.forEach((name) => {
+                const item = document.createElement("div");
+                item.className = "history-item";
+
+                const label = document.createElement("span");
+                label.textContent = name;
+
+                const replay = document.createElement("button");
+                replay.type = "button";
+                replay.textContent = "Replay";
+                replay.addEventListener("click", () => {
+                    commandInput.value = name;
+                    runCommand();
+                });
+
+                item.appendChild(label);
+                item.appendChild(replay);
+                historyList.appendChild(item);
+            });
+        }
+
+        async function runCommand() {
+            const command = commandInput.value.trim();
+            if (!command) {
+                statusText.textContent = "Enter a command first.";
+                setOutput("No command provided", false);
+                return;
+            }
+
+            runButton.disabled = true;
+            statusText.textContent = "Running " + command + "...";
+
+            try {
+                const response = await fetch("/api/command/" + encodeURIComponent(command));
+                const data = await response.json();
+                setOutput(data.output || "(no output)", response.ok && data.known);
+                statusText.textContent = response.ok ? "Completed." : "Command failed.";
+                await loadHistory();
+            } catch (error) {
+                statusText.textContent = "Request failed.";
+                setOutput("Error: " + error.message, false);
+            } finally {
+                runButton.disabled = false;
+            }
+        }
+
+        runButton.addEventListener("click", runCommand);
+        commandInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                runCommand();
+            }
+        });
+
+        Promise.all([loadCommands(), loadHistory()]).catch(() => {
+            commandList.textContent = "Failed to load commands.";
+            historyList.innerHTML = '<div class="history-empty">History is unavailable.</div>';
+            statusText.textContent = "Initial load failed.";
+        });
+    </script>
 </body>
 </html>
