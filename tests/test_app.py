@@ -1,27 +1,23 @@
-import json
-import runpy
-import sys
-
-import pytest
-
 import app
 
 
-@pytest.mark.parametrize(
-    ("command", "expected_output"),
-    [
-        ("hello", "Hello, world!\n"),
-        ("goodbye", "Goodbye, world!\n"),
-        ("help", "Available commands:\n- goodbye: Print a farewell message.\n- hello: Print a greeting.\n- help: Show all available commands.\n- history: Show the most recent commands.\n- version: Show the application version.\n"),
-    ],
-)
-def test_handle_command_runs_registered_command(command, expected_output, capsys):
-    result = app.handle_command(command)
+def test_execute_command_runs_registered_command():
+    result = app.execute_command("hello")
+
+    assert result.ok is True
+    assert result.exit_code == 0
+    assert result.output == "Hello, world!\n"
+
+
+def test_handle_command_help_lists_commands(capsys):
+    result = app.handle_command("help")
 
     captured = capsys.readouterr()
 
-    assert captured.out == expected_output
-    assert result is True
+    assert result.ok is True
+    for spec in app.get_command_specs():
+        assert spec.name in captured.out
+        assert spec.description in captured.out
 
 
 def test_handle_command_reports_unknown_command(capsys):
@@ -29,100 +25,34 @@ def test_handle_command_reports_unknown_command(capsys):
 
     captured = capsys.readouterr()
 
-    assert captured.out == "Unknown command: missing\n"
-    assert result is False
+    assert result.ok is False
+    assert result.exit_code == 1
+    assert captured.out.startswith("Unknown command: missing.")
+    assert "Available:" in captured.out
 
 
-def test_execute_command_normalizes_case_and_whitespace():
-    result = app.execute_command("  HELLO ")
+def test_main_without_command_prints_message(capsys):
+    exit_code = app.main([])
 
-    assert result == {
-        "command": "hello",
-        "known": True,
-        "output": "Hello, world!",
-    }
+    captured = capsys.readouterr()
 
-
-def test_execute_command_reports_empty_command():
-    result = app.execute_command("   ")
-
-    assert result == {
-        "command": "",
-        "known": False,
-        "output": "No command provided",
-    }
+    assert exit_code == 2
+    assert captured.out.startswith("No command provided.")
 
 
-def test_history_command_returns_recent_runs():
-    app.COMMAND_HISTORY.clear()
+def test_main_with_command_dispatches(capsys):
+    exit_code = app.main(["hello"])
 
-    app.execute_command("hello")
-    app.execute_command("version")
-    result = app.execute_command("history")
-
-    assert result == {
-        "command": "history",
-        "known": True,
-        "output": "Recent commands:\n- history\n- version\n- hello",
-    }
-
-
-def run_main(args, capsys, monkeypatch):
-    monkeypatch.setattr(sys, "argv", ["app.py", *args])
-
-    with pytest.raises(SystemExit) as exc_info:
-        runpy.run_path("app.py", run_name="__main__")
-
-    return exc_info.value.code, capsys.readouterr().out
-
-
-def test_main_without_command_prints_usage(capsys, monkeypatch):
-    exit_code, output = run_main([], capsys, monkeypatch)
-
-    assert exit_code == 1
-    assert "Usage" in output
-    assert "Available commands" in output
-
-
-def test_main_lists_commands_as_text(capsys, monkeypatch):
-    exit_code, output = run_main(["--list"], capsys, monkeypatch)
+    captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert output == "goodbye\nhello\nhelp\nhistory\nversion\n"
+    assert captured.out == "Hello, world!\n"
 
 
-def test_main_lists_commands_as_json(capsys, monkeypatch):
-    exit_code, output = run_main(["--list", "--json"], capsys, monkeypatch)
+def test_main_lists_commands(capsys):
+    exit_code = app.main(["--list"])
 
-    assert exit_code == 0
-    assert json.loads(output) == {
-        "commands": [
-            {"name": "goodbye", "description": "Print a farewell message."},
-            {"name": "hello", "description": "Print a greeting."},
-            {"name": "help", "description": "Show all available commands."},
-            {"name": "history", "description": "Show the most recent commands."},
-            {"name": "version", "description": "Show the application version."},
-        ]
-    }
-
-
-def test_main_runs_command_as_json(capsys, monkeypatch):
-    exit_code, output = run_main(["hello", "--json"], capsys, monkeypatch)
+    captured = capsys.readouterr()
 
     assert exit_code == 0
-    assert json.loads(output) == {
-        "command": "hello",
-        "known": True,
-        "output": "Hello, world!",
-    }
-
-
-def test_main_reports_unknown_command_as_json(capsys, monkeypatch):
-    exit_code, output = run_main(["missing", "--json"], capsys, monkeypatch)
-
-    assert exit_code == 1
-    assert json.loads(output) == {
-        "command": "missing",
-        "known": False,
-        "output": "Unknown command: missing",
-    }
+    assert "Available commands:" in captured.out

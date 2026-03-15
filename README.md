@@ -1,37 +1,78 @@
 BeermannBot
 ===========
 
-A small Python command-dispatcher with both a CLI and a Flask web UI.
+A command-line application with a web dashboard for running and managing bot commands.
 
 Description
 -----------
 
-BeermannBot exposes a registry of named commands that can be executed from the
-terminal or through a browser. The app now includes:
-
-- structured command metadata
-- JSON-friendly CLI output
-- a Flask API and browser UI
-- recent command history
-- a small test suite that covers CLI and HTTP behavior
+BeermannBot is a Python CLI application with a Flask-powered web UI. It provides a simple
+command registry pattern for dispatching named commands, with both a terminal interface and
+a browser-based dashboard. Commands now expose descriptions, return explicit success or
+failure results, and the dashboard keeps a short in-memory history of recent runs.
 
 Installation
 ------------
 
-```bash
-./setup.sh
-```
+1. Install Python 3.8 or higher.
+2. Clone the repository:
+   ```
+   git clone https://github.com/Beer-mann/BeermannBot.git
+   cd BeermannBot
+   ```
+3. Run setup to create the virtual environment and install dependencies:
+   ```
+   ./setup.sh
+   ```
 
 Usage
 -----
 
-CLI examples:
+**CLI mode:**
+```
+python app.py hello
+python app.py goodbye
+python app.py status
+python app.py help
+python app.py --list
+```
 
+`python app.py` now exits with status `2` when no command is provided and `1` for unknown
+commands, which makes the CLI easier to automate in scripts.
+
+**Web UI mode:**
+```
+./run_ui.sh
+```
+Then open http://localhost:5011 in your browser. The port can be overridden with the `PORT` environment variable.
+
+**HTTP API:**
+```
+GET  /health    # simple readiness check
+GET  /commands  # command names plus descriptions
+GET  /history   # last 10 command runs
+POST /run       # execute a command
+```
+
+Example:
 ```bash
-./run_cli.sh hello
-./run_cli.sh version
-./run_cli.sh --list
-./run_cli.sh hello --json
+curl -s http://localhost:5011/run \
+  -H 'Content-Type: application/json' \
+  -d '{"command":"version"}'
+```
+
+**Make targets:**
+```
+make setup   # install dependencies
+make cli     # run help via CLI
+make ui      # start web UI
+make test    # run test suite
+make smoke   # smoke-test the UI
+```
+
+Structure
+---------
+
 ```
 
 Web UI:
@@ -56,20 +97,23 @@ Project Layout
 
 ```text
 BeermannBot/
-├── app.py
-├── app_ui.py
-├── frontend/templates/index.html
-├── tests/test_app.py
-├── tests/test_ui.py
+├── app.py                      # CLI entry point and command registry
+├── server.py                   # Flask web server
+├── frontend/
+│   └── templates/
+│       └── index.html          # Web dashboard template
+├── tests/
+│   ├── test_app.py             # Unit tests
+│   └── test_server.py          # API and web tests
+├── pytest.ini                  # Pytest path configuration
+├── requirements.txt
+├── Makefile
 ├── run_cli.sh
 ├── run_ui.sh
 └── setup.sh
 ```
 
-Running Tests
--------------
-
-```bash
-source .venv/bin/activate
-pytest -q
-```
+- `app.py` is the entry point for the CLI and contains the command registry.
+- `server.py` runs the Flask web server, exposes API endpoints, and stores recent command history.
+- The `frontend/templates/` directory contains the Jinja2 HTML templates.
+- `requirements.txt` lists all required Python packages.
