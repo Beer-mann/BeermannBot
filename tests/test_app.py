@@ -1,23 +1,26 @@
+import runpy
+import sys
+
+import pytest
+
 import app
 
 
-def test_execute_command_runs_registered_command():
-    result = app.execute_command("hello")
-
-    assert result.ok is True
-    assert result.exit_code == 0
-    assert result.output == "Hello, world!\n"
-
-
-def test_handle_command_help_lists_commands(capsys):
-    result = app.handle_command("help")
+@pytest.mark.parametrize(
+    ("command", "expected_output"),
+    [
+        ("hello", "Hello, world!\n"),
+        ("goodbye", "Goodbye, world!\n"),
+        ("help", "Available commands:\n- goodbye\n- hello\n- help\n"),
+    ],
+)
+def test_handle_command_runs_registered_command(command, expected_output, capsys):
+    result = app.handle_command(command)
 
     captured = capsys.readouterr()
 
-    assert result.ok is True
-    for spec in app.get_command_specs():
-        assert spec.name in captured.out
-        assert spec.description in captured.out
+    assert captured.out == expected_output
+    assert result is True
 
 
 def test_handle_command_reports_unknown_command(capsys):
@@ -25,34 +28,57 @@ def test_handle_command_reports_unknown_command(capsys):
 
     captured = capsys.readouterr()
 
-    assert result.ok is False
-    assert result.exit_code == 1
-    assert captured.out.startswith("Unknown command: missing.")
-    assert "Available:" in captured.out
+    assert captured.out == "Unknown command: missing\n"
+    assert result is False
 
 
-def test_main_without_command_prints_message(capsys):
-    exit_code = app.main([])
+def test_execute_command_returns_structured_result():
+    result = app.execute_command("hello")
 
+    assert result == {
+        "command": "hello",
+        "known": True,
+        "output": "Hello, world!",
+    }
+
+
+def test_execute_command_reports_unknown_command():
+    result = app.execute_command("missing")
+
+    assert result == {
+        "command": "missing",
+        "known": False,
+        "output": "Unknown command: missing",
+    }
+
+
+def test_main_without_command_prints_usage(capsys, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["app.py"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path("app.py", run_name="__main__")
+
+    assert exc_info.value.code == 1
     captured = capsys.readouterr()
+    assert "Usage" in captured.out
+    assert "Available commands" in captured.out
 
-    assert exit_code == 2
-    assert captured.out.startswith("No command provided.")
 
+def test_main_with_command_dispatches(capsys, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["app.py", "hello"])
 
-def test_main_with_command_dispatches(capsys):
-    exit_code = app.main(["hello"])
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path("app.py", run_name="__main__")
 
+    assert exc_info.value.code == 0
     captured = capsys.readouterr()
-
-    assert exit_code == 0
     assert captured.out == "Hello, world!\n"
 
 
-def test_main_lists_commands(capsys):
-    exit_code = app.main(["--list"])
+def test_main_with_unknown_command_exits_nonzero(capsys, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["app.py", "missing"])
 
-    captured = capsys.readouterr()
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path("app.py", run_name="__main__")
 
-    assert exit_code == 0
-    assert "Available commands:" in captured.out
+    assert exc_info.value.code == 1
