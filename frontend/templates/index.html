@@ -18,6 +18,7 @@
         .cmd-chip { background: rgba(102,126,234,0.2); border: 1px solid rgba(102,126,234,0.4); border-radius: 6px; padding: 0.4rem 0.9rem; cursor: pointer; transition: background 0.2s; }
         .cmd-chip:hover { background: rgba(102,126,234,0.4); }
         .cmd-empty { color: rgba(255,255,255,0.75); }
+        .cmd-meta { margin-top: 0.75rem; color: rgba(255,255,255,0.8); min-height: 1.2rem; }
         #output { font-family: monospace; font-size: 0.95rem; min-height: 2.5rem; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 8px; margin-top: 1rem; white-space: pre-wrap; }
         .output-ok  { color: #a3e635; }
         .output-err { color: #f87171; }
@@ -31,6 +32,7 @@
         <div class="card">
             <h2>Available Commands</h2>
             <div class="cmd-list" id="cmd-list">Loading&hellip;</div>
+            <div class="cmd-meta" id="cmd-meta">Pick a command to see its description.</div>
         </div>
         <div class="card">
             <h2>Run Command</h2>
@@ -42,6 +44,14 @@
         </div>
     </div>
     <script>
+        let commandItems = [];
+
+        function setCommandDescription(commandName) {
+            const meta = document.getElementById('cmd-meta');
+            const item = commandItems.find(entry => entry.name === commandName);
+            meta.textContent = item ? item.description : 'Pick a command to see its description.';
+        }
+
         async function loadCommands() {
             const list = document.getElementById('cmd-list');
             list.textContent = 'Loading...';
@@ -51,16 +61,22 @@
                     throw new Error('Unable to load commands');
                 }
                 const data = await res.json();
+                commandItems = data.items || [];
                 list.innerHTML = '';
                 if (data.commands.length === 0) {
                     list.innerHTML = '<span class="cmd-empty">No commands available.</span>';
                     return;
                 }
-                data.commands.forEach(cmd => {
+                commandItems.forEach(item => {
                     const chip = document.createElement('span');
                     chip.className = 'cmd-chip';
-                    chip.textContent = cmd;
-                    chip.onclick = () => { document.getElementById('cmd-input').value = cmd; runCommand(); };
+                    chip.textContent = item.name;
+                    chip.title = item.description;
+                    chip.onclick = () => {
+                        document.getElementById('cmd-input').value = item.name;
+                        setCommandDescription(item.name);
+                        runCommand();
+                    };
                     list.appendChild(chip);
                 });
             } catch (e) {
@@ -73,7 +89,12 @@
             const btn = document.getElementById('run-btn');
             const out = document.getElementById('output');
             const cmd = input.value.trim();
-            if (!cmd) return;
+            if (!cmd) {
+                out.textContent = 'Enter a command before running.';
+                out.className = 'output-err';
+                return;
+            }
+            setCommandDescription(cmd);
             btn.disabled = true;
             out.textContent = 'Running…';
             out.className = '';

@@ -68,6 +68,15 @@ def test_run_empty_command_returns_400(client):
     assert res.status_code == 400
 
 
+def test_run_non_string_command_is_handled(client):
+    res = client.post("/run", json={"command": 123})
+    assert res.status_code == 404
+    data = res.get_json()
+    assert data["command"] == "123"
+    assert data["ok"] is False
+    assert data["error"] == "Unknown command: 123"
+
+
 def test_run_version_command(client):
     res = client.post("/run", json={"command": "version"})
     assert res.status_code == 200
