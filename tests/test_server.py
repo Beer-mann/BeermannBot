@@ -93,3 +93,47 @@ def test_history_returns_recent_runs(client):
     assert res.status_code == 200
     data = res.get_json()
     assert [item["command"] for item in data["items"]] == ["status", "hello"]
+
+
+def test_clear_history_removes_all_entries(client):
+    client.post("/run", json={"command": "hello"})
+    client.post("/run", json={"command": "status"})
+
+    res = client.delete("/history/clear")
+    assert res.status_code == 200
+    assert res.get_json()["status"] == "ok"
+
+    history_res = client.get("/history")
+    assert history_res.get_json()["items"] == []
+
+
+def test_run_null_command_returns_400(client):
+    res = client.post("/run", json={"command": None})
+    assert res.status_code == 400
+    data = res.get_json()
+    assert data["ok"] is False
+
+
+def test_run_command_case_insensitive(client):
+    res = client.post("/run", json={"command": "HELLO"})
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["ok"] is True
+    assert data["command"] == "hello"
+    assert data["output"] == "Hello, world!\n"
+
+
+def test_run_ping_command(client):
+    res = client.post("/run", json={"command": "ping"})
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["ok"] is True
+    assert data["output"] == "pong\n"
+
+
+def test_run_time_command(client):
+    res = client.post("/run", json={"command": "time"})
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["ok"] is True
+    assert "UTC" in data["output"]

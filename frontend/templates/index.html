@@ -24,6 +24,13 @@
         .output-err { color: #f87171; }
         .form-row { display: flex; gap: 0.5rem; align-items: flex-start; }
         .form-row input { margin: 0; }
+        .history-list { list-style: none; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; }
+        .history-item { display: flex; align-items: baseline; gap: 0.6rem; font-family: monospace; font-size: 0.9rem; }
+        .history-cmd { font-weight: bold; }
+        .history-ok { color: #a3e635; }
+        .history-err { color: #f87171; }
+        .history-time { color: rgba(255,255,255,0.45); font-size: 0.8rem; }
+        .history-empty { color: rgba(255,255,255,0.5); font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -37,10 +44,16 @@
         <div class="card">
             <h2>Run Command</h2>
             <div class="form-row">
-                <input type="text" id="cmd-input" placeholder="Enter command (e.g. hello)" />
+                <input type="text" id="cmd-input" placeholder="Enter command (e.g. hello)" aria-label="Command input" />
                 <button id="run-btn" onclick="runCommand()">Run</button>
             </div>
-            <div id="output"></div>
+            <div id="output" role="status" aria-live="polite"></div>
+        </div>
+        <div class="card">
+            <h2>History</h2>
+            <ul class="history-list" id="history-list">
+                <li class="history-empty">No commands run yet.</li>
+            </ul>
         </div>
     </div>
     <script>
@@ -52,11 +65,45 @@
             meta.textContent = item ? item.description : 'Pick a command to see its description.';
         }
 
+        function formatTimestamp(iso) {
+            try {
+                return new Date(iso).toLocaleTimeString();
+            } catch (_) {
+                return iso;
+            }
+        }
+
+        function renderHistory(items) {
+            const list = document.getElementById('history-list');
+            if (!items || items.length === 0) {
+                list.innerHTML = '<li class="history-empty">No commands run yet.</li>';
+                return;
+            }
+            list.innerHTML = '';
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                const statusClass = item.ok ? 'history-ok' : 'history-err';
+                const statusIcon = item.ok ? '✓' : '✗';
+                li.innerHTML =
+                    '<span class="' + statusClass + '">' + statusIcon + '</span>' +
+                    '<span class="history-cmd">' + escapeHtml(item.command) + '</span>' +
+                    '<span class="history-time">' + formatTimestamp(item.timestamp) + '</span>';
+                list.appendChild(li);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(text));
+            return div.innerHTML;
+        }
+
         async function loadCommands() {
             const list = document.getElementById('cmd-list');
             list.textContent = 'Loading...';
             try {
-                const res = await fetch('/api/commands');
+                const res = await fetch('/commands');
                 if (!res.ok) {
                     throw new Error('Unable to load commands');
                 }
@@ -72,11 +119,14 @@
                     chip.className = 'cmd-chip';
                     chip.textContent = item.name;
                     chip.title = item.description;
+                    chip.setAttribute('role', 'button');
+                    chip.setAttribute('tabindex', '0');
                     chip.onclick = () => {
                         document.getElementById('cmd-input').value = item.name;
                         setCommandDescription(item.name);
                         runCommand();
                     };
+                    chip.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') chip.click(); };
                     list.appendChild(chip);
                 });
             } catch (e) {
@@ -96,13 +146,20 @@
             }
             setCommandDescription(cmd);
             btn.disabled = true;
-            out.textContent = 'Running…';
+            out.textContent = 'Running\u2026';
             out.className = '';
             try {
-                const res = await fetch('/api/command/' + encodeURIComponent(cmd));
+                const res = await fetch('/run', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({command: cmd}),
+                });
                 const data = await res.json();
                 out.textContent = data.output || '(no output)';
-                out.className = res.ok && data.known ? 'output-ok' : 'output-err';
+                out.className = data.ok ? 'output-ok' : 'output-err';
+                if (data.history) {
+                    renderHistory(data.history);
+                }
             } catch (e) {
                 out.textContent = 'Error: ' + e.message;
                 out.className = 'output-err';

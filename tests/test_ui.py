@@ -61,3 +61,27 @@ def test_healthcheck_returns_ok(client):
 
     assert res.status_code == 200
     assert res.get_json() == {"status": "ok", "project": "BeermannBot"}
+
+
+def test_run_ping_command(client):
+    res = client.get("/api/command/ping")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["known"] is True
+    assert data["output"] == "pong"
+
+
+def test_run_time_command(client):
+    res = client.get("/api/command/time")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["known"] is True
+    assert "UTC" in data["output"]
+
+
+def test_run_command_case_insensitive(client):
+    res = client.get("/api/command/HELLO")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["known"] is True
+    assert data["output"] == "Hello, world!"

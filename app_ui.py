@@ -1,10 +1,15 @@
+import logging
 import os
 
 from flask import Flask, jsonify, render_template
+from flask_cors import CORS
 
 from app import execute_command, get_command_specs
 
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
+CORS(app)
 
 PROJECT_NAME = "BeermannBot"
 
@@ -30,6 +35,7 @@ def list_commands():
 
 @app.route("/api/command/<cmd>")
 def run_command(cmd):
+    logger.info("Running command: %s", cmd)
     result = execute_command(cmd)
     status_code = 200 if result.ok else 400 if result.exit_code == 2 else 404
     return jsonify(

@@ -2,6 +2,7 @@ import io
 import sys
 from contextlib import redirect_stdout
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Callable
 
 VERSION = "1.0.0"
@@ -40,15 +41,25 @@ def cmd_version():
     print(f"BeermannBot v{VERSION}")
 
 
+def cmd_ping():
+    print("pong")
+
+
 def cmd_status():
     print("Status: ok")
+
+
+def cmd_time():
+    print(datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"))
 
 
 _commands: dict[str, CommandSpec] = {
     "goodbye": CommandSpec("goodbye", "Print a farewell message", cmd_goodbye),
     "hello": CommandSpec("hello", "Print a greeting message", cmd_hello),
     "help": CommandSpec("help", "List all available commands", cmd_help),
+    "ping": CommandSpec("ping", "Respond with pong", cmd_ping),
     "status": CommandSpec("status", "Show bot status", cmd_status),
+    "time": CommandSpec("time", "Show the current UTC time", cmd_time),
     "version": CommandSpec("version", "Show version information", cmd_version),
 }
 
@@ -65,8 +76,8 @@ def normalize_command(command: object) -> str:
     if command is None:
         return ""
     if isinstance(command, str):
-        return command.strip()
-    return str(command).strip()
+        return command.strip().lower()
+    return str(command).strip().lower()
 
 
 def execute_command(command: object) -> CommandResult:

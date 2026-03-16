@@ -17,11 +17,14 @@ import app
             "- goodbye: Print a farewell message\n"
             "- hello: Print a greeting message\n"
             "- help: List all available commands\n"
+            "- ping: Respond with pong\n"
             "- status: Show bot status\n"
+            "- time: Show the current UTC time\n"
             "- version: Show version information\n",
         ),
         ("version", "BeermannBot v1.0.0\n"),
         ("status", "Status: ok\n"),
+        ("ping", "pong\n"),
     ],
 )
 def test_handle_command_runs_registered_command(command, expected_output, capsys):
@@ -125,3 +128,32 @@ def test_main_with_empty_command_preserves_exit_code(capsys, monkeypatch):
     assert exc_info.value.code == 2
     captured = capsys.readouterr()
     assert captured.out == "No command provided\n"
+
+
+def test_execute_command_time_returns_utc_timestamp():
+    result = app.execute_command("time")
+
+    assert result.ok is True
+    assert "UTC" in result.output
+    assert result.exit_code == 0
+
+
+def test_execute_command_case_insensitive():
+    result = app.execute_command("HELLO")
+
+    assert result.ok is True
+    assert result.command == "hello"
+    assert result.output == "Hello, world!\n"
+
+
+def test_execute_command_mixed_case():
+    result = app.execute_command("PiNg")
+
+    assert result.ok is True
+    assert result.output == "pong\n"
+
+
+def test_normalize_command_lowercases_input():
+    assert app.normalize_command("HELLO") == "hello"
+    assert app.normalize_command("  Status  ") == "status"
+    assert app.normalize_command(None) == ""

@@ -6,9 +6,8 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 
-from app import execute_command, get_command_specs
+from app import execute_command, get_command_specs, normalize_command
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__, template_folder="frontend/templates")
@@ -51,20 +50,22 @@ def history():
     return jsonify({"items": serialize_command_history()})
 
 
+@app.route("/history/clear", methods=["DELETE"])
+def clear_history():
+    command_history.clear()
+    return jsonify({"status": "ok", "message": "History cleared"})
+
+
 @app.route("/run", methods=["POST"])
 def run_command():
     data = request.get_json(silent=True) or {}
     cmd = data.get("command", "")
     logger.info("Running command: %s", cmd)
 
-    try:
-        result = execute_command(cmd)
-    except Exception as exc:
-        logger.exception("Command %r raised an exception", cmd)
-        return jsonify({"error": f"Command failed: {exc}"}), 500
+    result = execute_command(cmd)
 
     history_item = {
-        "command": result.command or cmd.strip(),
+        "command": result.command or normalize_command(cmd),
         "ok": result.ok,
         "output": result.output,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -88,5 +89,6 @@ def run_command():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     port = int(os.environ.get("PORT", 5011))
     app.run(host="0.0.0.0", port=port)
