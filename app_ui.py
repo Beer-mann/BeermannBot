@@ -1,8 +1,15 @@
-from flask import Flask, jsonify, render_template
+import logging
+import os
 
-from app import execute_command, get_command_names
+from flask import Flask, jsonify, render_template
+from flask_cors import CORS
+
+from app import execute_command, get_command_specs
+
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
+CORS(app)
 
 PROJECT_NAME = "BeermannBot"
 
@@ -14,14 +21,32 @@ def index():
 
 @app.route("/api/commands")
 def list_commands():
-    return jsonify({"commands": get_command_names()})
+    items = [
+        {"name": spec.name, "description": spec.description}
+        for spec in get_command_specs()
+    ]
+    return jsonify(
+        {
+            "commands": [item["name"] for item in items],
+            "items": items,
+        }
+    )
 
 
 @app.route("/api/command/<cmd>")
 def run_command(cmd):
+    logger.info("Running command: %s", cmd)
     result = execute_command(cmd)
-    status_code = 200 if result["known"] else 404
-    return jsonify(result), status_code
+    status_code = 200 if result.ok else 400 if result.exit_code == 2 else 404
+    return jsonify(
+        {
+            "command": result.command,
+            "known": result.ok,
+            "ok": result.ok,
+            "output": result.output.strip(),
+            "exit_code": result.exit_code,
+        }
+    ), status_code
 
 
 @app.route("/api/health")
@@ -30,7 +55,5 @@ def healthcheck():
 
 
 if __name__ == "__main__":
-    import os
-
     port = int(os.environ.get("PORT", 5011))
     app.run(host="0.0.0.0", port=port)
