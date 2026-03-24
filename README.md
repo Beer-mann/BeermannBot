@@ -25,7 +25,7 @@ Usage
 ```bash
 ./run_cli.sh hello      # prints "Hello, world!"
 ./run_cli.sh goodbye    # prints "Goodbye, world!"
-./run_cli.sh help       # prints all available commands
+./run_cli.sh help       # prints all available commands with descriptions
 ```
 
 **Web UI**
@@ -41,7 +41,7 @@ The UI also exposes a small REST API:
 
 | Endpoint | Description |
 |---|---|
-| `GET /api/commands` | JSON list of all registered commands |
+| `GET /api/commands` | JSON list of all registered commands plus descriptions |
 | `GET /api/command/<name>` | Execute a command and return its output as JSON |
 | `GET /api/health` | Simple healthcheck payload for monitoring/smoke tests |
 
@@ -66,14 +66,14 @@ BeermannBot/
 Adding Commands
 ---------------
 
-Open `app.py` and add an entry to the `commands` dict:
+Open `app.py` and add an entry to the `_commands` registry:
 
 ```python
-commands = {
-    'hello':   lambda: print('Hello, world!'),
-    'goodbye': lambda: print('Goodbye, world!'),
-    'help':    lambda: print('Available commands...'),
-    'ping':    lambda: print('pong'),
+_commands = {
+    "hello": CommandSpec("hello", "Print a greeting message", lambda: print("Hello, world!")),
+    "goodbye": CommandSpec("goodbye", "Print a farewell message", lambda: print("Goodbye, world!")),
+    "help": CommandSpec("help", "List all available commands", lambda: print("Available commands...")),
+    "ping": CommandSpec("ping", "Reply with pong", lambda: print("pong")),
 }
 ```
 
