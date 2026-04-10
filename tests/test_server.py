@@ -19,6 +19,8 @@ def test_index_returns_200(client):
     res = client.get("/")
     assert res.status_code == 200
     assert b"BeermannBot" in res.data
+    assert b"Frontend MVP shell" in res.data
+    assert b"Backend Contract Status" in res.data
 
 
 def test_health_returns_ok(client):
@@ -95,6 +97,16 @@ def test_history_returns_recent_runs(client):
     assert [item["command"] for item in data["items"]] == ["status", "hello"]
 
 
+def test_contract_returns_backend_service_contract(client):
+    res = client.get("/contract")
+
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["service"] == "beermannbot-backend"
+    assert data["contract_version"] == "2026-04-09-mvp"
+    assert any(endpoint["path"] == "/run" for endpoint in data["endpoints"])
+
+
 def test_clear_history_removes_all_entries(client):
     client.post("/run", json={"command": "hello"})
     client.post("/run", json={"command": "status"})
@@ -137,3 +149,22 @@ def test_run_time_command(client):
     data = res.get_json()
     assert data["ok"] is True
     assert "UTC" in data["output"]
+
+
+@pytest.mark.parametrize(
+    ("command", "expected_status", "expected_command", "expected_exit_code"),
+    [
+        ("  HELLO  ", 200, "hello", 0),
+        ("   ", 400, "", 2),
+        ("  MISSING  ", 404, "missing", 1),
+    ],
+)
+def test_run_command_normalization_and_status_code_mapping(
+    client, command, expected_status, expected_command, expected_exit_code
+):
+    res = client.post("/run", json={"command": command})
+
+    assert res.status_code == expected_status
+    data = res.get_json()
+    assert data["command"] == expected_command
+    assert data["exit_code"] == expected_exit_code

@@ -14,6 +14,8 @@ def test_index_renders_project_name(client):
     res = client.get("/")
     assert res.status_code == 200
     assert b"BeermannBot" in res.data
+    assert b"Flow Placeholders" in res.data
+    assert b"Command Runner" in res.data
 
 
 def test_list_commands_returns_json(client):
@@ -85,3 +87,22 @@ def test_run_command_case_insensitive(client):
     data = res.get_json()
     assert data["known"] is True
     assert data["output"] == "Hello, world!"
+
+
+@pytest.mark.parametrize(
+    ("path", "expected_status", "expected_command", "expected_exit_code"),
+    [
+        ("/api/command/%20HELLO%20", 200, "hello", 0),
+        ("/api/command/%20%20%20", 400, "", 2),
+        ("/api/command/%20missing%20", 404, "missing", 1),
+    ],
+)
+def test_ui_normalization_and_status_code_mapping(
+    client, path, expected_status, expected_command, expected_exit_code
+):
+    res = client.get(path)
+
+    assert res.status_code == expected_status
+    data = res.get_json()
+    assert data["command"] == expected_command
+    assert data["exit_code"] == expected_exit_code

@@ -8,7 +8,7 @@ Description
 
 BeermannBot is a Python application that exposes a registry of named commands
 runnable from the command line or through a browser-based web UI backed by
-Flask.
+one canonical Flask API surface (`server.py`).
 
 Installation
 ------------
@@ -37,13 +37,33 @@ Usage
 Open `http://localhost:5011` in your browser.  Click any command chip or type
 a command name and press **Run** / Enter to execute it live.
 
-The UI also exposes a small REST API:
+The UI also exposes a REST API:
 
 | Endpoint | Description |
 |---|---|
-| `GET /api/commands` | JSON list of all registered commands plus descriptions |
-| `GET /api/command/<name>` | Execute a command and return its output as JSON |
-| `GET /api/health` | Simple healthcheck payload for monitoring/smoke tests |
+| `GET /commands` | JSON list of all registered commands plus descriptions |
+| `POST /run` | Execute a command (`{"command":"hello"}`) and return output + history |
+| `GET /history` | List recent command executions |
+| `DELETE /history/clear` | Clear in-memory command history |
+| `GET /health` | Simple healthcheck payload for monitoring/smoke tests |
+| `GET /contract` | Canonical backend contract metadata |
+
+Legacy compatibility routes under `/api/*` remain temporarily available for older clients.
+
+Migration Notes
+---------------
+
+Canonical route changes:
+
+| Legacy route | Canonical route | Compatibility |
+|---|---|---|
+| `GET /api/health` | `GET /health` | supported (deprecated) |
+| `GET /api/commands` | `GET /commands` | supported (deprecated) |
+| `GET /api/command/<name>` | `POST /run` with JSON body | supported (deprecated) |
+
+Compatibility behavior:
+- Legacy `/api/command/<name>` responses keep the previous shape (`known`, trimmed `output`) to avoid breaking older callers.
+- Canonical `POST /run` responses preserve `app.py` command semantics, including normalization and exit-code mapping (`0 -> 200`, `2 -> 400`, `1 -> 404`).
 
 Structure
 ---------
@@ -51,7 +71,8 @@ Structure
 ```
 BeermannBot/
 ├── app.py                      # command registry + CLI entry point
-├── app_ui.py                   # Flask web server
+├── server.py                   # canonical Flask runtime + API contract
+├── app_ui.py                   # legacy compatibility entrypoint (imports server app)
 ├── frontend/
 │   └── templates/index.html    # browser UI
 ├── tests/
@@ -88,3 +109,18 @@ Running Tests
 source .venv/bin/activate
 pytest tests/
 ```
+
+Release-Quality Gates
+---------------------
+
+Run the same local quality checks expected by CI:
+
+```bash
+make test     # full pytest suite
+make smoke    # CLI + HTTP happy-path gate
+```
+
+`make smoke` executes `scripts/smoke.sh`, which:
+- validates CLI dispatch via `./run_cli.sh hello`
+- starts the Flask server and waits for `/health`
+- verifies `POST /run` returns a successful `hello` response

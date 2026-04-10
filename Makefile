@@ -13,4 +13,5 @@ test:
 	.venv/bin/python -m pytest tests/ -v
 
 smoke:
-	bash -lc 'timeout 12s ./run_ui.sh >/tmp/BeermannBot_ui.log 2>&1 || true; tail -n 20 /tmp/BeermannBot_ui.log || true'
+	[ -f .venv/bin/activate ] || ./setup.sh
+	./scripts/smoke.sh
