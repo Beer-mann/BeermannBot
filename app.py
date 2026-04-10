@@ -1,123 +1,24 @@
-import io
 import sys
-from contextlib import redirect_stdout
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Callable
-
-VERSION = "1.0.0"
-
-
-@dataclass
-class CommandSpec:
-    name: str
-    description: str
-    handler: Callable[[], None]
-
-
-@dataclass
-class CommandResult:
-    command: str
-    ok: bool
-    output: str
-    exit_code: int
-
-
-def cmd_hello():
-    print("Hello, world!")
-
-
-def cmd_goodbye():
-    print("Goodbye, world!")
-
-
-def cmd_help():
-    print("Available commands:")
-    for spec in get_command_specs():
-        print(f"- {spec.name}: {spec.description}")
-
-
-def cmd_version():
-    print(f"BeermannBot v{VERSION}")
-
-
-def cmd_ping():
-    print("pong")
-
-
-def cmd_status():
-    print("Status: ok")
-
-
-def cmd_time():
-    print(datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"))
-
-
-_commands: dict[str, CommandSpec] = {
-    "goodbye": CommandSpec("goodbye", "Print a farewell message", cmd_goodbye),
-    "hello": CommandSpec("hello", "Print a greeting message", cmd_hello),
-    "help": CommandSpec("help", "List all available commands", cmd_help),
-    "ping": CommandSpec("ping", "Respond with pong", cmd_ping),
-    "status": CommandSpec("status", "Show bot status", cmd_status),
-    "time": CommandSpec("time", "Show the current UTC time", cmd_time),
-    "version": CommandSpec("version", "Show version information", cmd_version),
-}
+from backend.commands import (
+    VERSION,
+    CommandResult,
+    CommandSpec,
+    execute_command as execute_domain_command,
+    get_default_registry,
+    normalize_command,
+)
 
 
 def get_command_names() -> list[str]:
-    return sorted(_commands)
+    return get_default_registry().command_names()
 
 
 def get_command_specs() -> list[CommandSpec]:
-    return [_commands[name] for name in sorted(_commands)]
-
-
-def normalize_command(command: object) -> str:
-    if command is None:
-        return ""
-    if isinstance(command, str):
-        return command.strip().lower()
-    return str(command).strip().lower()
+    return get_default_registry().command_specs()
 
 
 def execute_command(command: object) -> CommandResult:
-    cmd = normalize_command(command)
-
-    if not cmd:
-        return CommandResult(
-            command="",
-            ok=False,
-            output="No command provided",
-            exit_code=2,
-        )
-
-    spec = _commands.get(cmd)
-    if spec is None:
-        return CommandResult(
-            command=cmd,
-            ok=False,
-            output=f"Unknown command: {cmd}",
-            exit_code=1,
-        )
-
-    buf = io.StringIO()
-    try:
-        with redirect_stdout(buf):
-            spec.handler()
-    except Exception as exc:
-        return CommandResult(
-            command=cmd,
-            ok=False,
-            output=f"Error executing '{cmd}': {exc}",
-            exit_code=1,
-        )
-
-    return CommandResult(
-        command=cmd,
-        ok=True,
-        output=buf.getvalue(),
-        exit_code=0,
-    )
+    return execute_domain_command(command, registry=get_default_registry())
 
 
 def handle_command(command: str) -> bool:

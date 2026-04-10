@@ -6,7 +6,9 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 
-from app import execute_command, get_command_specs, normalize_command
+from backend.commands import normalize_command
+from backend.contract import build_service_contract
+from backend.service import CommandService
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +17,16 @@ app.config["COMMAND_HISTORY_LIMIT"] = 10
 CORS(app)
 
 command_history: deque[dict[str, object]] = deque(maxlen=app.config["COMMAND_HISTORY_LIMIT"])
+command_service = CommandService()
+PROJECT_NAME = "BeermannBot"
+
+
+def status_code_for_result(exit_code: int) -> int:
+    if exit_code == 0:
+        return 200
+    if exit_code == 2:
+        return 400
+    return 404
 
 
 def serialize_command_history() -> list[dict[str, object]]:
@@ -23,7 +35,7 @@ def serialize_command_history() -> list[dict[str, object]]:
 
 @app.route("/")
 def index():
-    return render_template("index.html", project_name="BeermannBot")
+    return render_template("index.html", project_name=PROJECT_NAME)
 
 
 @app.route("/health")
@@ -35,7 +47,7 @@ def health():
 def list_commands():
     items = [
         {"name": spec.name, "description": spec.description}
-        for spec in get_command_specs()
+        for spec in command_service.list_commands()
     ]
     return jsonify(
         {
@@ -50,6 +62,11 @@ def history():
     return jsonify({"items": serialize_command_history()})
 
 
+@app.route("/contract")
+def contract():
+    return jsonify(build_service_contract())
+
+
 @app.route("/history/clear", methods=["DELETE"])
 def clear_history():
     command_history.clear()
@@ -62,7 +79,7 @@ def run_command():
     cmd = data.get("command", "")
     logger.info("Running command: %s", cmd)
 
-    result = execute_command(cmd)
+    result = command_service.execute(cmd)
 
     history_item = {
         "command": result.command or normalize_command(cmd),
@@ -80,12 +97,40 @@ def run_command():
         "history": serialize_command_history(),
     }
 
-    if result.ok:
+    status_code = status_code_for_result(result.exit_code)
+    if status_code == 200:
         return jsonify(payload)
 
     payload["error"] = result.output
-    status_code = 400 if result.exit_code == 2 else 404
     return jsonify(payload), status_code
+
+
+@app.route("/api/health")
+def legacy_api_health():
+    return jsonify({"status": "ok", "project": PROJECT_NAME})
+
+
+@app.route("/api/commands")
+def legacy_api_commands():
+    return list_commands()
+
+
+@app.route("/api/command/<cmd>")
+def legacy_api_run_command(cmd):
+    logger.info("Running command via legacy route: %s", cmd)
+    result = command_service.execute(cmd)
+    return (
+        jsonify(
+            {
+                "command": result.command,
+                "known": result.ok,
+                "ok": result.ok,
+                "output": result.output.strip(),
+                "exit_code": result.exit_code,
+            }
+        ),
+        status_code_for_result(result.exit_code),
+    )
 
 
 if __name__ == "__main__":

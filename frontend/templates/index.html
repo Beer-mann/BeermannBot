@@ -3,176 +3,583 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ project_name }}</title>
+    <title>{{ project_name }} MVP</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e27; color: #fff; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-        h1 { font-size: 3rem; margin-bottom: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 2rem; margin: 1rem 0; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: transform 0.2s; }
-        button:hover { transform: translateY(-2px); }
-        button:disabled { opacity: 0.5; cursor: default; transform: none; }
-        input, textarea { width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; margin: 0.5rem 0; }
-        .cmd-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
-        .cmd-chip { background: rgba(102,126,234,0.2); border: 1px solid rgba(102,126,234,0.4); border-radius: 6px; padding: 0.4rem 0.9rem; cursor: pointer; transition: background 0.2s; }
-        .cmd-chip:hover { background: rgba(102,126,234,0.4); }
-        .cmd-empty { color: rgba(255,255,255,0.75); }
-        .cmd-meta { margin-top: 0.75rem; color: rgba(255,255,255,0.8); min-height: 1.2rem; }
-        #output { font-family: monospace; font-size: 0.95rem; min-height: 2.5rem; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 8px; margin-top: 1rem; white-space: pre-wrap; }
-        .output-ok  { color: #a3e635; }
-        .output-err { color: #f87171; }
-        .form-row { display: flex; gap: 0.5rem; align-items: flex-start; }
-        .form-row input { margin: 0; }
-        .history-list { list-style: none; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; }
-        .history-item { display: flex; align-items: baseline; gap: 0.6rem; font-family: monospace; font-size: 0.9rem; }
-        .history-cmd { font-weight: bold; }
-        .history-ok { color: #a3e635; }
-        .history-err { color: #f87171; }
-        .history-time { color: rgba(255,255,255,0.45); font-size: 0.8rem; }
-        .history-empty { color: rgba(255,255,255,0.5); font-size: 0.9rem; }
+        :root {
+            --bg: #f3efe6;
+            --bg-soft: #fdfaf5;
+            --text: #172321;
+            --ink: #254441;
+            --accent: #c44536;
+            --accent-soft: #f5d7d3;
+            --ok: #2e7d32;
+            --error: #b71c1c;
+            --line: #d8d1c4;
+            --card: #fffaf0;
+            --mono: "JetBrains Mono", "Fira Code", monospace;
+            --sans: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: var(--sans);
+            color: var(--text);
+            background:
+                radial-gradient(circle at 85% 15%, #ffe0b3 0%, transparent 32%),
+                radial-gradient(circle at 15% 85%, #e2f0cf 0%, transparent 38%),
+                var(--bg);
+            min-height: 100vh;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+        }
+
+        .side {
+            border-right: 1px solid var(--line);
+            background: rgba(255, 250, 240, 0.84);
+            backdrop-filter: blur(8px);
+            padding: 1.25rem;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+
+        .brand {
+            margin: 0;
+            font-size: 1.55rem;
+            color: var(--ink);
+            letter-spacing: 0.02em;
+        }
+
+        .tag {
+            margin: 0.5rem 0 1rem;
+            display: inline-block;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            color: var(--ink);
+            border: 1px solid var(--line);
+            background: #fff;
+        }
+
+        .nav { display: grid; gap: 0.4rem; }
+
+        .nav a {
+            display: block;
+            padding: 0.65rem 0.8rem;
+            border-radius: 0.55rem;
+            text-decoration: none;
+            color: var(--ink);
+            border: 1px solid transparent;
+            transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        }
+
+        .nav a:hover,
+        .nav a.active {
+            background: #fff;
+            border-color: var(--line);
+            transform: translateX(3px);
+        }
+
+        .main {
+            padding: 1.2rem;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 0.9rem;
+            padding: 1rem;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+            animation: fadeIn 0.34s ease;
+        }
+
+        h2 { margin: 0 0 0.6rem; color: var(--ink); }
+
+        .subtitle {
+            margin: 0 0 0.8rem;
+            color: #3a4c49;
+            font-size: 0.95rem;
+        }
+
+        .flow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.65rem;
+        }
+
+        .flow {
+            border: 1px dashed var(--line);
+            background: var(--bg-soft);
+            border-radius: 0.8rem;
+            padding: 0.75rem;
+        }
+
+        .flow-title { margin: 0 0 0.4rem; font-weight: 600; }
+        .flow-note { margin: 0; font-size: 0.88rem; color: #4a5956; }
+
+        .row { display: flex; gap: 0.55rem; align-items: stretch; }
+
+        input[type="text"] {
+            flex: 1;
+            border: 1px solid var(--line);
+            border-radius: 0.65rem;
+            background: #fff;
+            color: var(--text);
+            padding: 0.62rem 0.75rem;
+            font-size: 1rem;
+        }
+
+        button {
+            border: 1px solid var(--accent);
+            border-radius: 0.65rem;
+            background: var(--accent);
+            color: #fff;
+            padding: 0.6rem 0.95rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: default;
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.75rem;
+        }
+
+        .chip {
+            border: 1px solid #c6b49e;
+            border-radius: 999px;
+            background: #fff;
+            color: var(--ink);
+            padding: 0.3rem 0.7rem;
+            cursor: pointer;
+            font-family: var(--mono);
+            font-size: 0.8rem;
+        }
+
+        .mono {
+            font-family: var(--mono);
+            white-space: pre-wrap;
+            border-radius: 0.75rem;
+            border: 1px solid var(--line);
+            background: #fff;
+            padding: 0.75rem;
+            min-height: 2.5rem;
+        }
+
+        .ok { color: var(--ok); }
+        .err { color: var(--error); }
+
+        .list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 0.4rem;
+        }
+
+        .list li {
+            border: 1px solid var(--line);
+            border-radius: 0.65rem;
+            padding: 0.55rem 0.7rem;
+            background: #fff;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+        }
+
+        .hidden { display: none; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 900px) {
+            .app { grid-template-columns: 1fr; }
+            .side {
+                position: static;
+                height: auto;
+                border-right: 0;
+                border-bottom: 1px solid var(--line);
+            }
+            .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .row { flex-direction: column; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>{{ project_name }}</h1>
-        <div class="card">
-            <h2>Available Commands</h2>
-            <div class="cmd-list" id="cmd-list">Loading&hellip;</div>
-            <div class="cmd-meta" id="cmd-meta">Pick a command to see its description.</div>
-        </div>
-        <div class="card">
-            <h2>Run Command</h2>
-            <div class="form-row">
-                <input type="text" id="cmd-input" placeholder="Enter command (e.g. hello)" aria-label="Command input" />
-                <button id="run-btn" onclick="runCommand()">Run</button>
+<div class="app">
+    <aside class="side">
+        <h1 class="brand">{{ project_name }}</h1>
+        <span class="tag">Frontend MVP shell</span>
+        <nav class="nav" aria-label="MVP navigation">
+            <a href="#dashboard" data-route="dashboard">Dashboard</a>
+            <a href="#execute" data-route="execute">Execute</a>
+            <a href="#history" data-route="history">History</a>
+            <a href="#contract" data-route="contract">Contract</a>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <section id="route-dashboard" class="panel" data-route-panel="dashboard">
+            <h2>Flow Placeholders</h2>
+            <p class="subtitle">Initial user-flow placeholders for MVP execution and onboarding handoff.</p>
+            <div class="flow-grid">
+                <article class="flow">
+                    <p class="flow-title">Flow A: Quick Command</p>
+                    <p class="flow-note">Pick command chip, run immediately, validate output semantics.</p>
+                </article>
+                <article class="flow">
+                    <p class="flow-title">Flow B: Manual Input</p>
+                    <p class="flow-note">Type command, submit, review status + stdout in one panel.</p>
+                </article>
+                <article class="flow">
+                    <p class="flow-title">Flow C: Contract Check</p>
+                    <p class="flow-note">Probe backend surface and list mismatches for architecture follow-up.</p>
+                </article>
+                <article class="flow">
+                    <p class="flow-title">Flow D: History Review</p>
+                    <p class="flow-note">Inspect recent execution list from backend or local fallback cache.</p>
+                </article>
             </div>
-            <div id="output" role="status" aria-live="polite"></div>
-        </div>
-        <div class="card">
-            <h2>History</h2>
-            <ul class="history-list" id="history-list">
-                <li class="history-empty">No commands run yet.</li>
+        </section>
+
+        <section id="route-execute" class="panel hidden" data-route-panel="execute">
+            <h2>Command Runner</h2>
+            <p class="subtitle">Uses canonical backend endpoints only (`/commands`, `POST /run`, `/history`).</p>
+            <div class="row">
+                <input id="cmd-input" type="text" placeholder="hello" aria-label="Command">
+                <button id="run-btn" type="button">Run</button>
+            </div>
+            <div class="chip-row" id="command-chips"></div>
+            <div id="run-output" class="mono" role="status" aria-live="polite">Awaiting command.</div>
+        </section>
+
+        <section id="route-history" class="panel hidden" data-route-panel="history">
+            <h2>Execution History</h2>
+            <p class="subtitle">Deterministic rendering from canonical `/history` payload.</p>
+            <ul class="list" id="history-list">
+                <li>No entries yet.</li>
             </ul>
-        </div>
-    </div>
-    <script>
-        let commandItems = [];
+        </section>
 
-        function setCommandDescription(commandName) {
-            const meta = document.getElementById('cmd-meta');
-            const item = commandItems.find(entry => entry.name === commandName);
-            meta.textContent = item ? item.description : 'Pick a command to see its description.';
+        <section id="route-contract" class="panel hidden" data-route-panel="contract">
+            <h2>Backend Contract Status</h2>
+            <p class="subtitle">Canonical contract verification and runtime validation.</p>
+            <ul class="list" id="contract-list"></ul>
+        </section>
+    </main>
+</div>
+
+<script>
+    const state = {
+        route: "dashboard",
+        commandItems: [],
+        contract: {
+            commands: "unknown",
+            run: "POST /run",
+            history: "unknown",
+            health: "unknown",
+            mismatches: []
         }
+    };
 
-        function formatTimestamp(iso) {
-            try {
-                return new Date(iso).toLocaleTimeString();
-            } catch (_) {
-                return iso;
-            }
-        }
+    function setRoute(nextRoute) {
+        state.route = nextRoute || "dashboard";
 
-        function renderHistory(items) {
-            const list = document.getElementById('history-list');
-            if (!items || items.length === 0) {
-                list.innerHTML = '<li class="history-empty">No commands run yet.</li>';
-                return;
-            }
-            list.innerHTML = '';
-            items.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'history-item';
-                const statusClass = item.ok ? 'history-ok' : 'history-err';
-                const statusIcon = item.ok ? '✓' : '✗';
-                li.innerHTML =
-                    '<span class="' + statusClass + '">' + statusIcon + '</span>' +
-                    '<span class="history-cmd">' + escapeHtml(item.command) + '</span>' +
-                    '<span class="history-time">' + formatTimestamp(item.timestamp) + '</span>';
-                list.appendChild(li);
-            });
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.appendChild(document.createTextNode(text));
-            return div.innerHTML;
-        }
-
-        async function loadCommands() {
-            const list = document.getElementById('cmd-list');
-            list.textContent = 'Loading...';
-            try {
-                const res = await fetch('/commands');
-                if (!res.ok) {
-                    throw new Error('Unable to load commands');
-                }
-                const data = await res.json();
-                commandItems = data.items || [];
-                list.innerHTML = '';
-                if (data.commands.length === 0) {
-                    list.innerHTML = '<span class="cmd-empty">No commands available.</span>';
-                    return;
-                }
-                commandItems.forEach(item => {
-                    const chip = document.createElement('span');
-                    chip.className = 'cmd-chip';
-                    chip.textContent = item.name;
-                    chip.title = item.description;
-                    chip.setAttribute('role', 'button');
-                    chip.setAttribute('tabindex', '0');
-                    chip.onclick = () => {
-                        document.getElementById('cmd-input').value = item.name;
-                        setCommandDescription(item.name);
-                        runCommand();
-                    };
-                    chip.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') chip.click(); };
-                    list.appendChild(chip);
-                });
-            } catch (e) {
-                list.innerHTML = '<span class="cmd-empty">Failed to load commands.</span>';
-            }
-        }
-
-        async function runCommand() {
-            const input = document.getElementById('cmd-input');
-            const btn = document.getElementById('run-btn');
-            const out = document.getElementById('output');
-            const cmd = input.value.trim();
-            if (!cmd) {
-                out.textContent = 'Enter a command before running.';
-                out.className = 'output-err';
-                return;
-            }
-            setCommandDescription(cmd);
-            btn.disabled = true;
-            out.textContent = 'Running\u2026';
-            out.className = '';
-            try {
-                const res = await fetch('/run', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({command: cmd}),
-                });
-                const data = await res.json();
-                out.textContent = data.output || '(no output)';
-                out.className = data.ok ? 'output-ok' : 'output-err';
-                if (data.history) {
-                    renderHistory(data.history);
-                }
-            } catch (e) {
-                out.textContent = 'Error: ' + e.message;
-                out.className = 'output-err';
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        document.getElementById('cmd-input').addEventListener('keydown', e => {
-            if (e.key === 'Enter') runCommand();
+        document.querySelectorAll("[data-route-panel]").forEach((node) => {
+            const active = node.dataset.routePanel === state.route;
+            node.classList.toggle("hidden", !active);
         });
 
-        loadCommands();
-    </script>
+        document.querySelectorAll("[data-route]").forEach((node) => {
+            node.classList.toggle("active", node.dataset.route === state.route);
+        });
+    }
+
+    function normalizeRouteHash() {
+        const fromHash = window.location.hash.replace("#", "") || "dashboard";
+        const known = ["dashboard", "execute", "history", "contract"];
+        return known.includes(fromHash) ? fromHash : "dashboard";
+    }
+
+    async function requestJson(url, options) {
+        const res = await fetch(url, options);
+        let payload = null;
+        try {
+            payload = await res.json();
+        } catch (_) {
+            payload = null;
+        }
+        return { ok: res.ok, status: res.status, payload };
+    }
+
+    function parseCommandValue(value) {
+        if (typeof value === "string") {
+            const trimmed = value.trim();
+            return trimmed || "(empty)";
+        }
+        if (value === null || typeof value === "undefined") {
+            return "(unknown)";
+        }
+        return String(value);
+    }
+
+    function normalizeHistoryItems(items) {
+        if (!Array.isArray(items)) {
+            return [];
+        }
+
+        const normalized = items.map((item, index) => {
+            const source = item && typeof item === "object" ? item : {};
+            const command = parseCommandValue(source.command);
+            const ok = source.ok === true;
+            const timestamp = typeof source.timestamp === "string" ? source.timestamp : "";
+            const parsedTs = Date.parse(timestamp);
+            return {
+                command,
+                ok,
+                timestamp,
+                _time: Number.isNaN(parsedTs) ? Number.NEGATIVE_INFINITY : parsedTs,
+                _index: index
+            };
+        });
+
+        normalized.sort((a, b) => {
+            if (b._time !== a._time) {
+                return b._time - a._time;
+            }
+            if (a.command !== b.command) {
+                return a.command.localeCompare(b.command);
+            }
+            return a._index - b._index;
+        });
+
+        return normalized;
+    }
+
+    function pushMismatch(message) {
+        if (!state.contract.mismatches.includes(message)) {
+            state.contract.mismatches.push(message);
+        }
+    }
+
+    async function detectContract() {
+        state.contract.mismatches = [];
+        state.commandItems = [];
+
+        const health = await requestJson("/health");
+        if (health.ok) {
+            state.contract.health = "/health";
+        } else {
+            state.contract.health = "missing";
+            pushMismatch("Canonical /health is unavailable.");
+        }
+
+        const commands = await requestJson("/commands");
+        if (commands.ok && commands.payload) {
+            state.contract.commands = "/commands";
+            const items = commands.payload.items;
+            if (Array.isArray(items)) {
+                state.commandItems = items
+                    .filter((item) => item && typeof item === "object")
+                    .map((item) => ({
+                        name: parseCommandValue(item.name),
+                        description: typeof item.description === "string" ? item.description : ""
+                    }));
+            }
+        } else {
+            state.contract.commands = "missing";
+            pushMismatch("Canonical /commands is unavailable.");
+        }
+
+        const history = await requestJson("/history");
+        if (history.ok) {
+            state.contract.history = "/history";
+        } else {
+            state.contract.history = "missing";
+            pushMismatch("Canonical /history is unavailable.");
+        }
+    }
+
+    function renderCommandChips() {
+        const chips = document.getElementById("command-chips");
+        chips.innerHTML = "";
+
+        if (!state.commandItems.length) {
+            const item = document.createElement("span");
+            item.textContent = "No commands detected";
+            item.className = "chip";
+            item.style.cursor = "default";
+            chips.appendChild(item);
+            return;
+        }
+
+        state.commandItems.forEach((item) => {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "chip";
+            chip.textContent = item.name;
+            chip.title = item.description || "";
+            chip.addEventListener("click", () => {
+                document.getElementById("cmd-input").value = item.name;
+                runCommand();
+            });
+            chips.appendChild(chip);
+        });
+    }
+
+    function renderHistory(items) {
+        const list = document.getElementById("history-list");
+        list.innerHTML = "";
+        const normalizedItems = normalizeHistoryItems(items);
+
+        if (normalizedItems.length === 0) {
+            const empty = document.createElement("li");
+            empty.textContent = "No entries yet.";
+            list.appendChild(empty);
+            return;
+        }
+
+        normalizedItems.forEach((item) => {
+            const li = document.createElement("li");
+            const flag = item.ok ? "OK" : "ERR";
+            const stamp = item.timestamp ? " @ " + new Date(item.timestamp).toLocaleTimeString() : "";
+            li.textContent = "[" + flag + "] " + item.command + stamp;
+            list.appendChild(li);
+        });
+    }
+
+    function renderContract() {
+        const list = document.getElementById("contract-list");
+        list.innerHTML = "";
+
+        const statusRows = [
+            "Health endpoint: " + state.contract.health,
+            "Commands endpoint: " + state.contract.commands,
+            "Run endpoint: " + state.contract.run,
+            "History endpoint: " + state.contract.history
+        ];
+
+        statusRows.forEach((rowText) => {
+            const li = document.createElement("li");
+            li.textContent = rowText;
+            list.appendChild(li);
+        });
+
+        if (!state.contract.mismatches.length) {
+            const li = document.createElement("li");
+            li.className = "ok";
+            li.textContent = "No contract mismatches detected.";
+            list.appendChild(li);
+            return;
+        }
+
+        state.contract.mismatches.forEach((m) => {
+            const li = document.createElement("li");
+            li.className = "err";
+            li.textContent = m;
+            list.appendChild(li);
+        });
+    }
+
+    async function loadHistory() {
+        if (state.contract.history !== "/history") {
+            renderHistory([]);
+            return;
+        }
+        const res = await requestJson("/history");
+        if (!res.ok || !res.payload) {
+            pushMismatch("Failed reading canonical /history.");
+            renderHistory([]);
+            return;
+        }
+        renderHistory(res.payload.items || []);
+    }
+
+    async function runCommand() {
+        const input = document.getElementById("cmd-input");
+        const output = document.getElementById("run-output");
+        const runBtn = document.getElementById("run-btn");
+
+        const normalizedCommand = parseCommandValue(input.value);
+        if (normalizedCommand === "(empty)") {
+            output.textContent = "Enter a command before running.";
+            output.className = "mono err";
+            return;
+        }
+
+        runBtn.disabled = true;
+        output.textContent = "Running...";
+        output.className = "mono";
+
+        try {
+            if (state.contract.commands !== "/commands") {
+                throw new Error("No runnable backend contract");
+            }
+
+            const res = await requestJson("/run", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ command: normalizedCommand })
+            });
+            const payload = res.payload || {};
+
+            const backendOutput = typeof payload.output === "string" ? payload.output : "";
+            const backendError = typeof payload.error === "string" ? payload.error : "";
+            const out = (backendOutput || backendError).trim() || "(no output)";
+            output.textContent = out;
+            output.className = "mono " + (payload.ok === true ? "ok" : "err");
+
+            if (Array.isArray(payload.history)) {
+                renderHistory(payload.history);
+            } else {
+                await loadHistory();
+            }
+            renderContract();
+        } catch (err) {
+            output.textContent = "Execution error: " + err.message;
+            output.className = "mono err";
+            pushMismatch("Command execution failure: " + err.message);
+            renderContract();
+        } finally {
+            runBtn.disabled = false;
+        }
+    }
+
+    async function bootstrap() {
+        setRoute(normalizeRouteHash());
+        await detectContract();
+        renderCommandChips();
+        await loadHistory();
+        renderContract();
+
+        window.addEventListener("hashchange", () => {
+            setRoute(normalizeRouteHash());
+        });
+
+        document.getElementById("run-btn").addEventListener("click", runCommand);
+        document.getElementById("cmd-input").addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                runCommand();
+            }
+        });
+    }
+
+    bootstrap();
+</script>
 </body>
 </html>
